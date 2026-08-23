@@ -1,0 +1,160 @@
+:root {
+  --bg: #f3f6f5;
+  --paper: #ffffff;
+  --ink: #1c2b28;
+  --muted: #5d6d69;
+  --line: #d7e2de;
+  --teal: #0f766e;
+  --teal-dark: #115e59;
+  --sand: #d97706;
+  --soft: #d1fae5;
+  --shadow: 0 16px 36px rgba(28, 43, 40, 0.07);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: "Manrope", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.55;
+}
+h1, h2, h3, .brand-name {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.55rem;
+}
+p { margin: 0 0 1rem; }
+a { color: var(--teal); }
+.wrap { width: min(1080px, calc(100% - 2rem)); margin: 0 auto; }
+section { scroll-margin-top: 5.2rem; }
+
+.site-header {
+  position: sticky; top: 0; z-index: 30;
+  background: rgba(243, 246, 245, 0.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 0; }
+.brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: inherit; }
+.logo-mark {
+  width: 2.3rem; height: 2.3rem; border-radius: 999px;
+  background: var(--teal); color: #fff; display: grid; place-items: center; font-weight: 800;
+}
+.brand small { display: block; color: var(--muted); font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-links { display: flex; gap: 1.1rem; list-style: none; margin: 0; padding: 0; }
+.nav-links a {
+  text-decoration: none; color: var(--ink); font-weight: 700; font-size: 0.92rem;
+  padding-bottom: 0.15rem; border-bottom: 2px solid transparent;
+}
+.nav-links a:hover, .nav-links a.is-active { color: var(--teal); border-bottom-color: var(--teal); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--teal); color: #fff; text-decoration: none; border: 0; cursor: pointer;
+  font: inherit; font-weight: 800; padding: 0.72rem 1.1rem; border-radius: 999px;
+}
+.btn:hover { background: var(--teal-dark); color: #fff; }
+.btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.btn-ghost:hover { background: var(--soft); color: var(--ink); }
+.menu-toggle { display: none; border: 1px solid var(--line); background: #fff; height: 2.4rem; padding: 0 0.75rem; border-radius: 999px; font-weight: 800; }
+
+.hero {
+  display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 2.2rem;
+  align-items: center; padding: 3.2rem 0 2.4rem;
+}
+.kicker { color: var(--sand); font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.75rem; }
+.hero h1 { font-size: clamp(2.1rem, 5vw, 3.4rem); line-height: 1.12; }
+.lede { color: var(--muted); font-size: 1.08rem; max-width: 36rem; }
+.hero-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1.3rem; }
+.hero-photo {
+  min-height: 22rem; border-radius: 1.4rem; overflow: hidden; border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(15,118,110,0.08), rgba(28,43,40,0.28)),
+    url("https://images.unsplash.com/photo-1563453392212-326f5e854473?auto=format&fit=crop&w=1400&q=80") center/cover;
+  box-shadow: var(--shadow);
+}
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.gallery-item {
+  margin: 0;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fff;
+  min-height: 12rem;
+}
+.gallery-item img {
+  width: 100%;
+  height: 14rem;
+  object-fit: cover;
+  display: block;
+}
+
+.section { padding: 3.4rem 0; }
+.band { background: #e7f0ed; }
+.section-head { max-width: 38rem; margin-bottom: 1.5rem; }
+.grid-3, .grid-2 { display: grid; gap: 1rem; }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.card {
+  background: var(--paper); border: 1px solid var(--line); border-radius: 1.1rem;
+  padding: 1.25rem; box-shadow: var(--shadow);
+}
+.muted { color: var(--muted); }
+.list { margin: 0; padding: 0; list-style: none; }
+.list li { position: relative; padding: 0.32rem 0 0.32rem 1.1rem; }
+.list li::before {
+  content: ""; position: absolute; left: 0; top: 0.72rem;
+  width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--teal);
+}
+
+.price .amount { font-family: "Libre Baskerville", serif; font-size: 2rem; }
+.featured { outline: 2px solid var(--teal); }
+.quote { font-size: 1.05rem; }
+.quote footer { color: var(--muted); font-size: 0.9rem; }
+
+.cta {
+  background: var(--teal); color: #fff; border-radius: 1.2rem;
+  padding: 1.8rem 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+}
+.cta h2, .cta p { color: #fff; }
+.cta .btn { background: #fff; color: var(--teal-dark); }
+
+form { display: grid; gap: 0.75rem; }
+label { font-weight: 800; font-size: 0.86rem; }
+input, select, textarea {
+  width: 100%; font: inherit; padding: 0.72rem 0.8rem;
+  border: 1px solid var(--line); border-radius: 0.7rem; background: #fff;
+}
+textarea { min-height: 7.5rem; resize: vertical; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.notice { display: none; background: var(--soft); border: 1px solid #a7f3d0; padding: 0.85rem 1rem; border-radius: 0.8rem; }
+.notice.is-visible { display: block; }
+
+.site-footer {
+  border-top: 1px solid var(--line); padding: 1.8rem 0 2.2rem; color: var(--muted);
+}
+.footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 1.2rem; }
+.site-footer a { color: inherit; text-decoration: none; }
+.site-footer a:hover { color: var(--teal); }
+
+@media (max-width: 860px) {
+  .menu-toggle { display: inline-flex; align-items: center; }
+  .nav {
+    display: none; position: absolute; left: 0; right: 0; top: 100%;
+    background: var(--bg); border-bottom: 1px solid var(--line); padding: 0.4rem 1rem 1rem;
+  }
+  .nav.is-open { display: block; }
+  .header-inner { flex-wrap: wrap; }
+  .nav-links { flex-direction: column; gap: 0.55rem; }
+  .hero, .grid-3, .grid-2, .form-row, .footer-grid, .cta { grid-template-columns: 1fr; }
+  .cta { display: grid; }
+  .hero-photo { min-height: 16rem; }
+  .gallery { grid-template-columns: 1fr 1fr; }
+  .gallery-item img { height: 10rem; }
+}
