@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /send.php
+Disallow: /check-outbound.php
+Disallow: /brevo-config.php
+Disallow: /brevo-config.example.php
+
+Sitemap: https://app123.ca/sitemap.xml

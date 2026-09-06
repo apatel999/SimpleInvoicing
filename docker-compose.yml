@@ -19,6 +19,26 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  web-saas:
+    build:
+      context: ./docker/php
+    container_name: simpleinvoicing-saas
+    ports:
+      - "${SAAS_PORT:-8084}:80"
+    volumes:
+      - ./app-saas:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_NAME: ${SAAS_DATABASE:-invoicehost}
+      DB_USER: ${MYSQL_USER}
+      DB_PASS: ${MYSQL_PASSWORD}
+      APP_URL: ${SAAS_URL:-http://localhost:8084}
+      APP_SECRET: ${APP_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
   db:
     image: mariadb:11.4
     container_name: simpleinvoicing-db

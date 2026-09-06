@@ -1,0 +1,118 @@
+﻿:root {
+  --bg: #f4f1ea;
+  --paper: #fffdf8;
+  --ink: #1c1c1c;
+  --muted: #5c574c;
+  --line: #e4ddd0;
+  --header: #1c1c1c;
+  --accent: #e8a317;
+  --accent-ink: #1c1c1c;
+  --band: #f3efe4;
+  --hero-overlay: rgba(28, 28, 28, 0.38);
+  --hero-image: url("https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&w=1400&q=80");
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.55;
+}
+h1, h2, h3, .brand-name {
+  font-family: Inter, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.55rem;
+}
+p { margin: 0 0 1rem; }
+a { color: var(--accent); }
+.wrap { width: min(1100px, calc(100% - 2rem)); margin: 0 auto; }
+section { scroll-margin-top: 5.1rem; }
+
+.site-header { position: sticky; top: 0; z-index: 30; background: var(--header); color: #fff; }
+.header-inner { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 0; }
+.brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; color: #fff; }
+.logo-mark {
+  width: 2.3rem; height: 2.3rem; border-radius: 0.4rem;
+  background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800;
+}
+.brand small { display: block; color: rgba(255,255,255,0.7); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.nav-links { display: flex; gap: 1.05rem; list-style: none; margin: 0; padding: 0; }
+.nav-links a { color: #ececec; text-decoration: none; font-weight: 600; font-size: 0.92rem; }
+.nav-links a:hover, .nav-links a.is-active { color: #fff; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: var(--accent-ink); text-decoration: none; border: 0; cursor: pointer;
+  font: inherit; font-weight: 700; padding: 0.7rem 1.05rem; border-radius: 0.4rem;
+}
+.btn:hover { filter: brightness(1.06); color: var(--accent-ink); }
+.btn-ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+.btn-ghost:hover { background: var(--ink); color: #fff; }
+.menu-toggle { display: none; background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.3); height: 2.4rem; padding: 0 0.75rem; font-weight: 700; border-radius: 0.4rem; }
+
+.hero { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 2.2rem; align-items: center; padding: 3.2rem 0 2.2rem; }
+.kicker { color: var(--accent); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.72rem; }
+.hero h1 { font-size: clamp(2rem, 4.6vw, 3.1rem); line-height: 1.1; }
+.lede { color: var(--muted); font-size: 1.05rem; }
+.hero-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 1.2rem; }
+.hero-photo {
+  min-height: 22rem; border-radius: 0.7rem;
+  background: linear-gradient(180deg, transparent, var(--hero-overlay)), var(--hero-image) center/cover;
+  box-shadow: var(--shadow);
+}
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; padding-bottom: 1.4rem; }
+.stat { background: var(--paper); border: 1px solid var(--line); padding: 0.95rem 1rem; border-radius: 0.55rem; box-shadow: var(--shadow); }
+.stat strong { display: block; }
+
+.section { padding: 3.3rem 0; }
+.band { background: var(--band); }
+.section-head { max-width: 40rem; margin-bottom: 1.4rem; }
+.grid-3, .grid-2 { display: grid; gap: 1rem; }
+.grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.about-grid { display: grid; grid-template-columns: 1.3fr 0.9fr; gap: 1.4rem; align-items: start; }
+.card { background: var(--paper); border: 1px solid var(--line); padding: 1.2rem 1.25rem; border-radius: 0.55rem; box-shadow: var(--shadow); }
+.featured { outline: 2px solid var(--accent); }
+.muted { color: var(--muted); }
+.list { margin: 0; padding: 0; list-style: none; }
+.list li { position: relative; padding: 0.3rem 0 0.3rem 1rem; }
+.list li::before { content: ""; position: absolute; left: 0; top: 0.7rem; width: 0.42rem; height: 0.42rem; background: var(--accent); border-radius: 50%; }
+
+form { display: grid; gap: 0.75rem; }
+form p { margin: 0; }
+label { font-weight: 700; font-size: 0.86rem; display: block; margin-bottom: 0.3rem; }
+input, select, textarea { width: 100%; font: inherit; padding: 0.7rem 0.8rem; border: 1px solid var(--line); border-radius: 0.4rem; }
+textarea { min-height: 7rem; resize: vertical; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.notice { display: none; background: var(--band); border: 1px solid var(--line); padding: 0.85rem; border-radius: 0.4rem; }
+.notice.is-visible { display: block; }
+.map-embed { margin-top: 0.35rem; border: 1px solid var(--line); border-radius: 0.4rem; overflow: hidden; height: 14rem; }
+.map-embed iframe { display: block; width: 100%; height: 100%; border: 0; }
+
+.site-footer { background: #111; color: #b8b8b8; padding: 1.8rem 0 2.1rem; }
+.footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 1.2rem; }
+.site-footer a { color: #fff; text-decoration: none; }
+.site-footer strong { color: #fff; display: block; margin-bottom: 0.35rem; }
+
+.dir-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.dir-card {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 0.55rem;
+  padding: 1.2rem 1.25rem; box-shadow: var(--shadow);
+}
+.dir-card:hover { border-color: #bbb; }
+
+@media (max-width: 860px) {
+  .menu-toggle { display: inline-flex; align-items: center; }
+  .nav { display: none; position: absolute; left: 0; right: 0; top: 100%; background: var(--header); padding: 0.4rem 1rem 1rem; }
+  .nav.is-open { display: block; }
+  .header-inner { flex-wrap: wrap; }
+  .nav-links { flex-direction: column; gap: 0.5rem; }
+  .hero, .grid-3, .grid-2, .stats, .form-row, .footer-grid, .about-grid, .dir-grid { grid-template-columns: 1fr; }
+  .hero-photo { min-height: 16rem; }
+}
+
