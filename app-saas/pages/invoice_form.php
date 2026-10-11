@@ -308,8 +308,8 @@ $detailOrDash = function ($value) {
             <thead>
                 <tr>
                     <th class="inv-col-grip"></th>
-                    <th>Items</th>
-                    <th class="inv-col-qty">Quantity</th>
+                    <th>Description</th>
+                    <th class="inv-col-qty">Qty</th>
                     <th class="inv-col-price">Price</th>
                     <th class="inv-col-amt">Amount</th>
                     <th class="inv-col-remove"></th>
@@ -323,10 +323,10 @@ $detailOrDash = function ($value) {
                             <span></span><span></span><span></span><span></span><span></span><span></span>
                         </span>
                     </td>
-                    <td class="inv-col-desc" data-label="Item">
+                    <td class="inv-col-desc" data-label="Description">
                         <input type="text" name="items[description][]" placeholder="Type item description (optional)" value="<?php echo e($item['description']); ?>">
                     </td>
-                    <td class="inv-col-qty" data-label="Quantity">
+                    <td class="inv-col-qty" data-label="Qty">
                         <input type="number" name="items[quantity][]" min="0" step="0.01" value="<?php echo e($item['quantity']); ?>">
                     </td>
                     <td class="inv-col-price" data-label="Price">

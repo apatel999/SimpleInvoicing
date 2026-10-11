@@ -922,13 +922,14 @@ table.data.invoice-items tr:hover td { background: transparent; }
 .inv-meta p { margin: 0; }
 .inv-meta label { color: #5f6474; font-size: 0.8rem; margin-bottom: 0.18rem; }
 .inv-date { display: block; }
-.inv-items-card { padding: 0.25rem 0.5rem 0.7rem; margin-bottom: 0.75rem; }
+.inv-items-card { padding: 0 0 0.7rem; margin-bottom: 0.75rem; overflow: hidden; }
 .inv-items { width: 100%; border-collapse: collapse; }
 .inv-items th {
-  text-align: left; font-size: 0.78rem; color: var(--inv-muted); font-weight: 650;
-  padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--inv-border);
+  text-align: left; font-size: 0.75rem; color: var(--ink); font-weight: 700;
+  padding: 0.85rem 0.7rem; background: #f1f2f5; border-bottom: 0;
+  text-transform: uppercase; letter-spacing: 0.05em;
 }
-.inv-items td { padding: 0.4rem 0.4rem; vertical-align: middle; }
+.inv-items td { padding: 0.4rem 0.7rem; vertical-align: middle; }
 .inv-col-grip { width: 2rem; text-align: center; vertical-align: middle; }
 .inv-col-qty { width: 7rem; }
 .inv-col-price { width: 10rem; }

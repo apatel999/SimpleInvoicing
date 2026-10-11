@@ -115,10 +115,10 @@
       map: map,
       center: gtaCenter,
       radius: gtaRadius,
-      strokeColor: "#c45c26",
+      strokeColor: "#2f7ecb",
       strokeOpacity: 0.95,
       strokeWeight: 3,
-      fillColor: "#c45c26",
+      fillColor: "#2f7ecb",
       fillOpacity: 0.22
     });
     new google.maps.Marker({
