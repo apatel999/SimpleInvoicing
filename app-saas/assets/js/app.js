@@ -185,7 +185,6 @@
     });
   }
 
-  var trigger = document.getElementById('customer-trigger');
   var panel = document.getElementById('customer-panel');
   var search = document.getElementById('customer-search');
   var customerId = document.getElementById('customer_id');
@@ -193,8 +192,6 @@
   var newFields = document.getElementById('new-customer-fields');
   var selectedFields = document.getElementById('selected-customer-fields');
   var chooseNew = document.getElementById('choose-new-customer');
-  var customerLabel = document.getElementById('customer-label');
-  var customerSub = document.getElementById('customer-sub');
   var viewName = document.getElementById('view-customer-name');
   var viewCompany = document.getElementById('view-customer-company');
   var viewEmail = document.getElementById('view-customer-email');
@@ -226,29 +223,47 @@
     if (panel) panel.hidden = true;
   }
 
-  if (trigger && panel) {
-    trigger.addEventListener('click', function (event) {
-      event.preventDefault();
-      panel.hidden = !panel.hidden;
-      if (!panel.hidden && search) {
-        search.focus();
+  function filterCustomers() {
+    var q = search ? search.value.toLowerCase() : '';
+    var items = document.querySelectorAll('.inv-picker-item');
+    var visible = 0;
+    for (var i = 0; i < items.length; i++) {
+      var hay = (items[i].getAttribute('data-name') + ' ' + items[i].getAttribute('data-company') + ' ' + items[i].getAttribute('data-email')).toLowerCase();
+      var show = q === '' || hay.indexOf(q) !== -1;
+      items[i].style.display = show ? '' : 'none';
+      if (show) visible++;
+    }
+    return visible;
+  }
+
+  function openPicker() {
+    if (!panel) return;
+    filterCustomers();
+    panel.hidden = false;
+  }
+
+  if (search && panel) {
+    search.addEventListener('focus', function () {
+      var items = document.querySelectorAll('.inv-picker-item');
+      for (var i = 0; i < items.length; i++) {
+        items[i].style.display = '';
+      }
+      panel.hidden = false;
+      search.select();
+    });
+    search.addEventListener('input', function () {
+      openPicker();
+    });
+    search.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closePicker();
+        search.blur();
       }
     });
     document.addEventListener('click', function (event) {
-      var card = document.getElementById('customer-card');
-      if (card && !card.contains(event.target)) {
+      var wrap = document.querySelector('.inv-customer-search-wrap');
+      if (wrap && !wrap.contains(event.target)) {
         closePicker();
-      }
-    });
-  }
-
-  if (search) {
-    search.addEventListener('input', function () {
-      var q = search.value.toLowerCase();
-      var items = document.querySelectorAll('.inv-picker-item');
-      for (var i = 0; i < items.length; i++) {
-        var hay = (items[i].getAttribute('data-name') + ' ' + items[i].getAttribute('data-company') + ' ' + items[i].getAttribute('data-email')).toLowerCase();
-        items[i].style.display = hay.indexOf(q) === -1 ? 'none' : '';
       }
     });
   }
@@ -261,8 +276,7 @@
       var email = this.getAttribute('data-email') || '';
       var phone = this.getAttribute('data-phone') || '';
       if (customerId) customerId.value = this.getAttribute('data-id');
-      if (customerLabel) customerLabel.textContent = name;
-      if (customerSub) customerSub.textContent = company || email || 'Existing customer';
+      if (search) search.value = name;
       fillSelectedCustomer(name, company, email, phone);
       closePicker();
     });
@@ -270,8 +284,7 @@
 
   if (chooseNew) {
     chooseNew.addEventListener('click', function () {
-      if (customerLabel) customerLabel.textContent = 'New Customer';
-      if (customerSub) customerSub.textContent = 'Enter customer details';
+      if (search) search.value = '';
       showNewCustomerFields();
       closePicker();
       var nameField = document.getElementById('new_name');

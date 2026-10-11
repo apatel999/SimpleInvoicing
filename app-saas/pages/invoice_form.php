@@ -195,46 +195,31 @@ $detailOrDash = function ($value) {
 
     <div class="inv-top">
         <div class="inv-card inv-customer" id="customer-card">
-            <button type="button" class="inv-customer-trigger" id="customer-trigger">
-                <span class="inv-avatar" aria-hidden="true">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.2" stroke="currentColor" stroke-width="1.6"/><path d="M5 19c1.2-3.2 3.7-5 7-5s5.8 1.8 7 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-                </span>
-                <span class="inv-customer-copy">
-                    <strong id="customer-label">
-                        <?php echo $selectedCustomer ? e($selectedCustomer['name']) : 'New Customer'; ?>
-                    </strong>
-                    <small id="customer-sub">
-                        <?php
-                        if ($selectedCustomer) {
-                            echo e(trim($selectedCustomer['company'] . ($selectedCustomer['email'] ? ' · ' . $selectedCustomer['email'] : '')));
-                        } else {
-                            echo 'Select or create a customer';
-                        }
-                        ?>
-                    </small>
-                </span>
-                <span class="req">*</span>
-                <span class="inv-caret" aria-hidden="true"></span>
-            </button>
-
-            <div class="inv-picker" id="customer-panel" hidden>
-                <input type="search" id="customer-search" class="inv-search" placeholder="Search customers" autocomplete="off">
-                <button type="button" class="inv-picker-new" id="choose-new-customer">+ New customer</button>
-                <div class="inv-picker-list" id="customer-list">
-                    <?php foreach ($customers as $customer): ?>
-                        <button type="button" class="inv-picker-item"
-                                data-id="<?php echo (int) $customer['id']; ?>"
-                                data-name="<?php echo e($customer['name']); ?>"
-                                data-company="<?php echo e($customer['company']); ?>"
-                                data-email="<?php echo e($customer['email']); ?>"
-                                data-phone="<?php echo e($customer['phone']); ?>">
-                            <strong><?php echo e($customer['name']); ?></strong>
-                            <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
-                        </button>
-                    <?php endforeach; ?>
-                    <?php if (!$customers): ?>
-                        <p class="inv-picker-empty">No customers yet.</p>
-                    <?php endif; ?>
+            <div class="inv-customer-bar">
+                <label class="inv-customer-search-label" for="customer-search">Customer <span class="req">*</span></label>
+                <div class="inv-customer-tools">
+                    <div class="inv-customer-search-wrap">
+                        <input type="search" id="customer-search" class="inv-search" placeholder="Search customers" autocomplete="off" value="<?php echo $selectedCustomer && $customerMode !== 'new' ? e($selectedCustomer['name']) : ''; ?>">
+                        <div class="inv-picker" id="customer-panel" hidden>
+                            <div class="inv-picker-list" id="customer-list">
+                                <?php foreach ($customers as $customer): ?>
+                                    <button type="button" class="inv-picker-item"
+                                            data-id="<?php echo (int) $customer['id']; ?>"
+                                            data-name="<?php echo e($customer['name']); ?>"
+                                            data-company="<?php echo e($customer['company']); ?>"
+                                            data-email="<?php echo e($customer['email']); ?>"
+                                            data-phone="<?php echo e($customer['phone']); ?>">
+                                        <strong><?php echo e($customer['name']); ?></strong>
+                                        <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
+                                    </button>
+                                <?php endforeach; ?>
+                                <?php if (!$customers): ?>
+                                    <p class="inv-picker-empty">No customers yet.</p>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn inv-new-btn" id="choose-new-customer">+ New customer</button>
                 </div>
             </div>
 
