@@ -66,3 +66,8 @@ try {
 } catch (Exception $e) {
     render_setup_page('Could not connect to MySQL. Check config.php. ' . $e->getMessage());
 }
+
+try {
+    ensure_invoice_viewed_at_column();
+} catch (Exception $e) {
+}

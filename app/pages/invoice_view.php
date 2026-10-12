@@ -27,9 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify();
     $action = post('action');
 
-    if ($action === 'cancel' && $invoice['status'] !== 'cancelled' && $invoice['status'] !== 'paid') {
-        db()->prepare("UPDATE invoices SET status = 'cancelled' WHERE id = ?")->execute(array($id));
-        flash('success', 'Invoice cancelled.');
+    if ($action === 'cancel') {
+        $result = cancel_invoice($invoice);
+        if ($result === true) {
+            flash('success', 'Invoice cancelled.');
+        } else {
+            flash('error', $result);
+        }
         redirect('invoice', array('id' => $id));
     }
 

@@ -394,7 +394,6 @@ function status_label($status)
     $map = array(
         'draft' => 'Draft',
         'sent' => 'Sent',
-        'viewed' => 'Viewed',
         'partial' => 'Partial',
         'paid' => 'Paid',
         'overdue' => 'Overdue',

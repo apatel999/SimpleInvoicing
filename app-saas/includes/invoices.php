@@ -107,6 +107,56 @@ function invoice_balance($invoice)
     return round((float) $invoice['total'] - (float) $invoice['amount_paid'], 2);
 }
 
+function ensure_invoice_viewed_at_column()
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    $col = db()->query("SHOW COLUMNS FROM invoices LIKE 'viewed_at'")->fetch();
+    if (!$col) {
+        db()->exec('ALTER TABLE invoices ADD COLUMN viewed_at DATETIME NULL DEFAULT NULL AFTER sent_at');
+    }
+    db()->exec("UPDATE invoices SET viewed_at = COALESCE(viewed_at, updated_at, NOW()), status = IF(due_date < CURDATE() AND amount_paid < total, 'overdue', 'sent') WHERE status = 'viewed'");
+}
+
+function mark_invoice_opened($invoice)
+{
+    if (!$invoice || empty($invoice['id'])) {
+        return;
+    }
+    ensure_invoice_viewed_at_column();
+    $sql = 'UPDATE invoices SET viewed_at = COALESCE(viewed_at, NOW()) WHERE id = ?';
+    $params = array((int) $invoice['id']);
+    if (!empty($invoice['tenant_id'])) {
+        $sql .= ' AND tenant_id = ?';
+        $params[] = (int) $invoice['tenant_id'];
+    }
+    db()->prepare($sql)->execute($params);
+}
+
+function cancel_invoice($invoice)
+{
+    if (!$invoice) {
+        return 'Invoice not found.';
+    }
+    if ($invoice['status'] === 'cancelled') {
+        return 'Invoice is already cancelled.';
+    }
+    if ($invoice['status'] === 'paid') {
+        return 'Paid invoices cannot be cancelled.';
+    }
+    $sql = "UPDATE invoices SET status = 'cancelled' WHERE id = ?";
+    $params = array((int) $invoice['id']);
+    if (function_exists('tenant_id') && tenant_id() > 0) {
+        $sql .= ' AND tenant_id = ?';
+        $params[] = tenant_id();
+    }
+    db()->prepare($sql)->execute($params);
+    return true;
+}
+
 function sync_invoice_payment_status($invoiceId)
 {
     $pdo = db();
@@ -157,7 +207,7 @@ function mark_overdue_invoices()
             SET status = 'overdue'
             WHERE tenant_id = ?
               AND due_date < CURDATE()
-              AND status IN ('sent', 'viewed', 'partial')
+              AND status IN ('sent', 'partial')
               AND amount_paid < total
         ")->execute(array($tid));
     }
@@ -364,24 +414,42 @@ function render_invoice_paper($invoice, $items, $balance, $showStatus = true)
                 </tr>
             <?php endforeach; ?>
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="totals-label">Subtotal</td>
+                    <td class="num"><?php echo e(money($invoice['subtotal'])); ?></td>
+                </tr>
+                <?php if ($discount > 0): ?>
+                <tr>
+                    <td colspan="3" class="totals-label">Discount</td>
+                    <td class="num"><?php echo e(money($discount)); ?></td>
+                </tr>
+                <?php endif; ?>
+                <?php if ($tax > 0): ?>
+                <tr>
+                    <td colspan="3" class="totals-label">Tax (<?php echo e($invoice['tax_rate']); ?>%)</td>
+                    <td class="num"><?php echo e(money($tax)); ?></td>
+                </tr>
+                <?php endif; ?>
+                <tr class="grand">
+                    <td colspan="3" class="totals-label">Total</td>
+                    <td class="num"><?php echo e(money($invoice['total'])); ?></td>
+                </tr>
+                <?php if ($paid > 0): ?>
+                <tr>
+                    <td colspan="3" class="totals-label">Paid</td>
+                    <td class="num"><?php echo e(money($paid)); ?></td>
+                </tr>
+                <tr class="balance">
+                    <td colspan="3" class="totals-label">Balance</td>
+                    <td class="num"><?php echo e(money($balance)); ?></td>
+                </tr>
+                <?php endif; ?>
+            </tfoot>
         </table>
     </div>
 
     <div class="invoice-bottom">
-        <div class="totals">
-            <div><span>Subtotal</span><span><?php echo e(money($invoice['subtotal'])); ?></span></div>
-            <?php if ($discount > 0): ?>
-                <div><span>Discount</span><span><?php echo e(money($discount)); ?></span></div>
-            <?php endif; ?>
-            <?php if ($tax > 0): ?>
-                <div><span>Tax (<?php echo e($invoice['tax_rate']); ?>%)</span><span><?php echo e(money($tax)); ?></span></div>
-            <?php endif; ?>
-            <div class="grand"><span>Total</span><span><?php echo e(money($invoice['total'])); ?></span></div>
-            <?php if ($paid > 0): ?>
-                <div><span>Paid</span><span><?php echo e(money($paid)); ?></span></div>
-                <div class="balance"><span>Balance</span><span><?php echo e(money($balance)); ?></span></div>
-            <?php endif; ?>
-        </div>
         <div class="invoice-terms">
             <?php if ($invoice['notes']): ?>
                 <h3>Notes</h3>
@@ -425,7 +493,9 @@ function render_invoice_email_html($invoice, $items = null)
     $label = 'padding:3px 0;color:#6b7280;font-size:14px;font-family:' . $font . ';white-space:nowrap';
     $value = 'padding:3px 0 3px 14px;text-align:right;font-weight:600;font-size:14px;font-family:' . $font;
     $cell = 'padding:11px 8px 11px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-family:' . $font;
-    $numCell = 'padding:11px 0 11px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right;font-family:' . $font;
+    $numCell = 'padding:11px 0 11px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;font-family:' . $font;
+    $totLabel = 'padding:8px 12px 8px 0;border:0;text-align:right;color:#6b7280;white-space:nowrap;font-family:' . $font;
+    $totAmt = 'padding:8px 0;border:0;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;font-family:' . $font;
     $head = 'padding:11px 8px;background:#f1f2f5;color:#111827;font-size:12px;'
         . 'text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-family:' . $font;
 
@@ -488,7 +558,7 @@ function render_invoice_email_html($invoice, $items = null)
             <th align="left" width="52%" bgcolor="#f1f2f5" style="width:52%;<?php echo $head; ?>;text-align:left">Description</th>
             <th align="right" width="10%" bgcolor="#f1f2f5" style="width:10%;<?php echo $head; ?>;white-space:nowrap;text-align:right">Qty</th>
             <th align="right" width="19%" bgcolor="#f1f2f5" style="width:19%;<?php echo $head; ?>;white-space:nowrap;text-align:right">Price</th>
-            <th align="right" width="19%" bgcolor="#f1f2f5" style="width:19%;<?php echo $head; ?>;white-space:nowrap;text-align:right">Amount</th>
+            <th align="right" width="19%" bgcolor="#f1f2f5" style="width:19%;<?php echo $head; ?>;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums">Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -500,42 +570,38 @@ function render_invoice_email_html($invoice, $items = null)
             <td align="right" style="<?php echo $numCell; ?>"><?php echo e(money($item['line_total'])); ?></td>
           </tr>
         <?php endforeach; ?>
+          <tr>
+            <td colspan="3" align="right" style="<?php echo $totLabel; ?>;padding-top:18px">Subtotal</td>
+            <td align="right" style="<?php echo $totAmt; ?>;padding-top:18px"><?php echo e(money($invoice['subtotal'])); ?></td>
+          </tr>
+          <?php if ($discount > 0): ?>
+          <tr>
+            <td colspan="3" align="right" style="<?php echo $totLabel; ?>">Discount</td>
+            <td align="right" style="<?php echo $totAmt; ?>"><?php echo e(money($discount)); ?></td>
+          </tr>
+          <?php endif; ?>
+          <?php if ($tax > 0): ?>
+          <tr>
+            <td colspan="3" align="right" style="<?php echo $totLabel; ?>">Tax (<?php echo e($invoice['tax_rate']); ?>%)</td>
+            <td align="right" style="<?php echo $totAmt; ?>"><?php echo e(money($tax)); ?></td>
+          </tr>
+          <?php endif; ?>
+          <tr>
+            <td colspan="3" align="right" bgcolor="#f1f2f5" style="<?php echo $totLabel; ?>;padding:9px 12px 9px 0;background:#f1f2f5;font-weight:800;color:#111827">Total</td>
+            <td align="right" bgcolor="#f1f2f5" style="<?php echo $totAmt; ?>;padding:9px 0;background:#f1f2f5;font-weight:800;color:#111827"><?php echo e(money($invoice['total'])); ?></td>
+          </tr>
+          <?php if ($paid > 0): ?>
+          <tr>
+            <td colspan="3" align="right" style="<?php echo $totLabel; ?>">Paid</td>
+            <td align="right" style="<?php echo $totAmt; ?>"><?php echo e(money($paid)); ?></td>
+          </tr>
+          <tr>
+            <td colspan="3" align="right" style="<?php echo $totLabel; ?>;font-weight:700;color:#111827">Balance</td>
+            <td align="right" style="<?php echo $totAmt; ?>;font-weight:700"><?php echo e(money($balance)); ?></td>
+          </tr>
+          <?php endif; ?>
         </tbody>
       </table>
-
-      <table role="presentation" cellpadding="0" cellspacing="0" align="right" width="280" style="margin:18px 0 0 auto;width:280px;border-collapse:collapse;font-size:14px">
-        <tr>
-          <td style="padding:4px 0;color:#6b7280">Subtotal</td>
-          <td align="right" style="padding:4px 0;text-align:right"><?php echo e(money($invoice['subtotal'])); ?></td>
-        </tr>
-        <?php if ($discount > 0): ?>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280">Discount</td>
-            <td align="right" style="padding:4px 0;text-align:right"><?php echo e(money($discount)); ?></td>
-          </tr>
-        <?php endif; ?>
-        <?php if ($tax > 0): ?>
-          <tr>
-            <td style="padding:4px 0;color:#6b7280">Tax (<?php echo e($invoice['tax_rate']); ?>%)</td>
-            <td align="right" style="padding:4px 0;text-align:right"><?php echo e(money($tax)); ?></td>
-          </tr>
-        <?php endif; ?>
-        <tr>
-          <td bgcolor="#f1f2f5" style="padding:9px 10px;background:#f1f2f5;font-weight:800">Total</td>
-          <td align="right" bgcolor="#f1f2f5" style="padding:9px 10px;background:#f1f2f5;font-weight:800;text-align:right"><?php echo e(money($invoice['total'])); ?></td>
-        </tr>
-        <?php if ($paid > 0): ?>
-          <tr>
-            <td style="padding:7px 0 4px;color:#6b7280">Paid</td>
-            <td align="right" style="padding:7px 0 4px;text-align:right"><?php echo e(money($paid)); ?></td>
-          </tr>
-          <tr>
-            <td style="padding:4px 0;font-weight:700">Balance</td>
-            <td align="right" style="padding:4px 0;font-weight:700;text-align:right"><?php echo e(money($balance)); ?></td>
-          </tr>
-        <?php endif; ?>
-      </table>
-      <div style="clear:both"></div>
 
       <?php if (!empty($invoice['notes'])): ?>
         <div style="margin-top:28px">

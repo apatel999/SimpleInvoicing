@@ -397,7 +397,10 @@ table.data th, table.data td {
   vertical-align: top;
 }
 table.data th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-table.data td.num, table.data th.num { text-align: right; white-space: nowrap; }
+table.data td.num, table.data th.num {
+  text-align: right; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 table.data tr:hover td { background: #f9fafb; }
 
 .badge {
@@ -557,14 +560,47 @@ textarea { min-height: 3.4rem; resize: vertical; }
 }
 .invoice-party-name { font-size: 1.05rem; font-weight: 700; }
 .invoice-due { text-align: right; }
-.invoice-due-amount { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em; }
+.invoice-due-amount {
+  font-size: 1.5rem; font-weight: 800; letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
 table.data.invoice-items th {
   background: #f1f2f5; color: var(--ink); font-weight: 700;
   padding: 0.85rem 0.7rem; border-bottom: 0;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
+table.data.invoice-items:not(.inv-items) th.num,
+table.data.invoice-items:not(.inv-items) td.num {
+  width: 1%;
+  padding-left: 0.85rem;
+  padding-right: 0;
+}
 table.data.invoice-items td { padding: 0.9rem 0.7rem; vertical-align: middle; }
 table.data.invoice-items tr:hover td { background: transparent; }
+table.data.invoice-items tfoot td {
+  border-bottom: 0;
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+table.data.invoice-items tfoot tr:first-child td { padding-top: 1.15rem; }
+table.data.invoice-items tfoot td.totals-label {
+  text-align: right;
+  color: var(--muted);
+  font-weight: 500;
+}
+table.data.invoice-items tfoot tr.grand td {
+  background: #f1f2f5;
+  font-weight: 800;
+  color: var(--ink);
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+table.data.invoice-items tfoot tr.balance td {
+  font-weight: 700;
+  color: var(--ink);
+}
+table.data.invoice-items tfoot tr.grand td.totals-label { color: var(--ink); }
 .invoice-bottom {
   display: flex; flex-direction: column; gap: 1.6rem; margin-top: 1.6rem;
 }
@@ -572,10 +608,21 @@ table.data.invoice-items tr:hover td { background: transparent; }
 .invoice-terms p { margin: 0 0 0.9rem; font-size: 0.9rem; }
 .invoice-thanks { font-weight: 700; }
 .totals { width: 17rem; max-width: 100%; margin-left: auto; }
-.totals div { display: flex; justify-content: space-between; gap: 1rem; padding: 0.32rem 0; }
+.totals div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 8.25rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.32rem 0;
+}
+.totals div > :last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
 .totals .grand {
   background: #f1f2f5; font-weight: 800; margin-top: 0.45rem;
-  padding: 0.55rem 0.7rem; border-radius: 0.3rem;
+  padding: 0.55rem 0;
+  border-radius: 0.3rem;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
 .totals .balance { font-weight: 700; }
@@ -896,6 +943,9 @@ table.data.invoice-items tr:hover td { background: transparent; }
 .invoice-builder .invoice-items .inv-col-price { width: 8.5rem; }
 .invoice-builder .invoice-items .inv-col-amt { width: 7rem; }
 .invoice-builder .invoice-items .inv-col-remove { width: 2.2rem; padding: 0.45rem 0.3rem; }
+.invoice-builder .totals .inv-discount {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
 .invoice-builder .invoice-items input[type="text"],
 .invoice-builder .invoice-items input[type="number"] {
   padding: 0.35rem 0.45rem;

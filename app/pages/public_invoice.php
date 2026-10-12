@@ -11,10 +11,7 @@ if (!$invoice || strlen($token) !== 32 || !hash_equals(invoice_public_token($id)
     return;
 }
 
-if ($invoice['status'] === 'sent') {
-    db()->prepare("UPDATE invoices SET status = 'viewed' WHERE id = ? AND status = 'sent'")->execute(array($id));
-    $invoice['status'] = 'viewed';
-}
+mark_invoice_opened($invoice);
 
 $items = fetch_invoice_items($id);
 $balance = invoice_balance($invoice);

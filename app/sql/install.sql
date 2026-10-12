@@ -71,7 +71,7 @@ CREATE TABLE `customers` (
 
 -- -----------------------------------------------------------------------------
 -- Invoices
--- status: draft | sent | viewed | partial | paid | overdue | cancelled
+-- status: draft | sent | partial | paid | overdue | cancelled
 -- -----------------------------------------------------------------------------
 CREATE TABLE `invoices` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -93,6 +93,7 @@ CREATE TABLE `invoices` (
   `notes` TEXT NULL,
   `terms` TEXT NULL,
   `sent_at` DATETIME NULL DEFAULT NULL,
+  `viewed_at` DATETIME NULL DEFAULT NULL,
   `paid_at` DATETIME NULL DEFAULT NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -6,17 +6,11 @@ $pdo = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'delete') {
     csrf_verify();
-    $id = (int) post('id');
-    $invoice = fetch_invoice($id);
-    if ($invoice && $invoice['status'] === 'draft') {
-        try {
-            db()->prepare('DELETE FROM invoices WHERE id = ? AND tenant_id = ?')->execute(array($id, tenant_id()));
-            flash('success', 'Draft invoice deleted.');
-        } catch (Exception $e) {
-            flash('error', 'This invoice has payments and cannot be deleted.');
-        }
+    $result = cancel_invoice(fetch_invoice((int) post('id')));
+    if ($result === true) {
+        flash('success', 'Invoice cancelled.');
     } else {
-        flash('error', 'Only draft invoices can be deleted.');
+        flash('error', $result);
     }
     redirect('dashboard');
 }
@@ -111,12 +105,12 @@ $recent = $recentStmt->fetchAll();
                     <div class="cell-actions">
                         <a class="icon-btn" href="<?php echo e(url('invoice', array('id' => $invoice['id']))); ?>" title="View" aria-label="View invoice"><?php echo action_icon('view'); ?></a>
                         <a class="icon-btn" href="<?php echo e(url('invoice_form', array('id' => $invoice['id']))); ?>" title="Edit" aria-label="Edit invoice"><?php echo action_icon('edit'); ?></a>
-                        <?php if ($invoice['status'] === 'draft'): ?>
-                            <form method="post" data-confirm="Delete this draft?">
+                        <?php if ($invoice['status'] !== 'cancelled' && $invoice['status'] !== 'paid'): ?>
+                            <form method="post" data-confirm="Cancel this invoice? It will be kept with status Cancelled.">
                                 <?php echo csrf_field(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo (int) $invoice['id']; ?>">
-                                <button class="icon-btn icon-btn-danger" type="submit" title="Delete" aria-label="Delete invoice"><?php echo action_icon('delete'); ?></button>
+                                <button class="icon-btn icon-btn-danger" type="submit" title="Cancel invoice" aria-label="Cancel invoice"><?php echo action_icon('delete'); ?></button>
                             </form>
                         <?php endif; ?>
                     </div>

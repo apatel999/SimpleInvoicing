@@ -95,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($invoice['status'], array('draft', 'sent'), true)) {
         $invoice['status'] = 'draft';
     }
-    if ($id && $found && in_array($found['status'], array('partial', 'paid', 'overdue', 'viewed', 'sent'), true) && $invoice['status'] === 'draft') {
+    if ($id && $found && in_array($found['status'], array('partial', 'paid', 'overdue', 'sent'), true) && $invoice['status'] === 'draft') {
         $invoice['status'] = $found['status'] === 'draft' ? 'draft' : 'sent';
     }
 

@@ -436,13 +436,13 @@ function si_build_invoice_pdf($invoice, $items, $balance)
         $totals[] = array('Balance', money($balance), true);
     }
     $ensure(count($totals) * 18 + 16);
-    $totalsLeft = $right - 200;
+    $totalsLeft = $colAmt - 192;
     foreach ($totals as $row) {
         if ($row[2]) {
-            $rectFill($totalsLeft - 8, $y - 6, 208, 20, 0.945);
+            $rectFill($totalsLeft - 8, $y - 6, ($colAmt - $totalsLeft) + 8, 20, 0.945);
         }
         $text($totalsLeft, $y, 10, $row[0], $row[2]);
-        $textRight($right - 8, $y, 10, $row[1], $row[2]);
+        $textRight($colAmt, $y, 10, $row[1], $row[2]);
         $y -= 18;
     }
 
