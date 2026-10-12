@@ -28,10 +28,10 @@ function render_app($pageTitle, $content, $currentPage)
             'invoices' => array('Invoices', url('invoices')),
             'payments' => array('Payments', url('payments')),
         ),
-        array(
-            'email_templates' => array('Email templates', url('email_templates')),
-            'settings' => array('Settings', url('settings')),
-        ),
+    );
+    $navFooter = array(
+        'email_templates' => array('Email templates', url('email_templates')),
+        'settings' => array('Settings', url('settings')),
     );
     ?>
 <!DOCTYPE html>
@@ -42,7 +42,7 @@ function render_app($pageTitle, $content, $currentPage)
     <title><?php echo e($pageTitle); ?> · <?php echo e($company); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?php echo e(invoice_ui_font_href()); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
 </head>
 <body<?php echo !empty($GLOBALS['page_class']) ? ' class="' . e($GLOBALS['page_class']) . '"' : ''; ?>>
@@ -78,6 +78,14 @@ function render_app($pageTitle, $content, $currentPage)
                         </a>
                     <?php endforeach; ?>
                 </div>
+            <?php endforeach; ?>
+        </nav>
+        <nav class="nav-end">
+            <?php foreach ($navFooter as $key => $item): ?>
+                <a class="nav-link<?php echo $currentPage === $key ? ' is-active' : ''; ?>" href="<?php echo e($item[1]); ?>">
+                    <span class="nav-icon"><?php echo nav_icon($key); ?></span>
+                    <span><?php echo e($item[0]); ?></span>
+                </a>
             <?php endforeach; ?>
         </nav>
         <a class="sidebar-logout" href="<?php echo e(url('logout')); ?>">Log out</a>
@@ -139,7 +147,7 @@ function render_auth($pageTitle, $content)
     <title><?php echo e($pageTitle); ?> · <?php echo e($company); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?php echo e(invoice_ui_font_href()); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
 </head>
 <body class="auth-body">

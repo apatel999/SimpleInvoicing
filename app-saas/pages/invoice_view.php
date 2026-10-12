@@ -1,6 +1,7 @@
 <?php
 
 $currentPage = 'invoices';
+upgrade_stock_email_templates();
 $id = (int) query('id');
 $invoice = fetch_invoice($id);
 if (!$invoice) {

@@ -178,10 +178,10 @@ foreach ($customers as $customer) {
 }
 $showTax = (float) $invoice['tax_rate'] > 0;
 $displayNumber = $id ? $invoice['invoice_number'] : peek_invoice_number();
-$detailOrDash = function ($value) {
-    $text = trim((string) $value);
-    return $text === '' ? '—' : $text;
-};
+$companyName = setting('company_name', 'My Company');
+$companyLogo = company_logo_url();
+$companyBlocks = company_contact_blocks();
+$companyFooter = array_merge($companyBlocks['contact'], $companyBlocks['address']);
 ?>
 <form method="post" class="invoice-builder" data-currency="<?php echo e($currency); ?>" id="invoice-form">
     <?php echo csrf_field(); ?>
@@ -193,190 +193,183 @@ $detailOrDash = function ($value) {
         <div class="alert alert-err"><?php echo e($error); ?></div>
     <?php endif; ?>
 
-    <div class="inv-top">
-        <div class="inv-card inv-customer" id="customer-card">
-            <div class="inv-customer-bar">
-                <label class="inv-customer-search-label" for="customer-search">Customer <span class="req">*</span></label>
-                <div class="inv-customer-tools">
-                    <div class="inv-customer-search-wrap">
-                        <input type="search" id="customer-search" class="inv-search" placeholder="Search customers" autocomplete="off" value="<?php echo $selectedCustomer && $customerMode !== 'new' ? e($selectedCustomer['name']) : ''; ?>">
-                        <div class="inv-picker" id="customer-panel" hidden>
-                            <div class="inv-picker-list" id="customer-list">
-                                <?php foreach ($customers as $customer): ?>
-                                    <button type="button" class="inv-picker-item"
-                                            data-id="<?php echo (int) $customer['id']; ?>"
-                                            data-name="<?php echo e($customer['name']); ?>"
-                                            data-company="<?php echo e($customer['company']); ?>"
-                                            data-email="<?php echo e($customer['email']); ?>"
-                                            data-phone="<?php echo e($customer['phone']); ?>">
-                                        <strong><?php echo e($customer['name']); ?></strong>
-                                        <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
-                                    </button>
-                                <?php endforeach; ?>
-                                <?php if (!$customers): ?>
-                                    <p class="inv-picker-empty">No customers yet.</p>
-                                <?php endif; ?>
+    <div class="invoice-paper">
+        <div class="invoice-head">
+            <div class="invoice-brand">
+                <?php if ($companyLogo !== ''): ?>
+                    <img class="invoice-logo" src="<?php echo e($companyLogo); ?>" alt="<?php echo e($companyName); ?>">
+                <?php endif; ?>
+                <div class="invoice-brand-name"><?php echo e($companyName); ?></div>
+            </div>
+            <div class="invoice-title">
+                <h2>INVOICE</h2>
+                <dl class="invoice-meta">
+                    <div>
+                        <dt>Invoice No</dt>
+                        <dd><?php echo e($displayNumber); ?></dd>
+                    </div>
+                    <div>
+                        <dt><label for="issue_date">Invoice date</label></dt>
+                        <dd><input id="issue_date" type="date" name="issue_date" required value="<?php echo e($invoice['issue_date']); ?>"></dd>
+                    </div>
+                    <div>
+                        <dt><label for="due_date">Due date</label></dt>
+                        <dd><input id="due_date" type="date" name="due_date" required value="<?php echo e($invoice['due_date']); ?>"></dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <div class="invoice-parties">
+            <div class="inv-customer" id="customer-card">
+                <div class="invoice-label">Invoice to <span class="req">*</span></div>
+                <div class="inv-customer-bar">
+                    <div class="inv-customer-tools">
+                        <div class="inv-customer-search-wrap">
+                            <input type="search" id="customer-search" class="inv-search" placeholder="Search customers" autocomplete="off" value="<?php echo $selectedCustomer && $customerMode !== 'new' ? e($selectedCustomer['name']) : ''; ?>">
+                            <div class="inv-picker" id="customer-panel" hidden>
+                                <div class="inv-picker-list" id="customer-list">
+                                    <?php foreach ($customers as $customer): ?>
+                                        <button type="button" class="inv-picker-item"
+                                                data-id="<?php echo (int) $customer['id']; ?>"
+                                                data-name="<?php echo e($customer['name']); ?>"
+                                                data-company="<?php echo e($customer['company']); ?>"
+                                                data-email="<?php echo e($customer['email']); ?>"
+                                                data-phone="<?php echo e($customer['phone']); ?>">
+                                            <strong><?php echo e($customer['name']); ?></strong>
+                                            <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
+                                        </button>
+                                    <?php endforeach; ?>
+                                    <?php if (!$customers): ?>
+                                        <p class="inv-picker-empty">No customers yet.</p>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
+                        <button type="button" class="btn btn-ghost inv-new-btn" id="choose-new-customer">+ New customer</button>
                     </div>
-                    <button type="button" class="btn inv-new-btn" id="choose-new-customer">+ New customer</button>
+                </div>
+
+                <div id="selected-customer-fields"<?php echo ($customerMode === 'existing' && $selectedCustomer) ? '' : ' hidden'; ?>>
+                    <div class="invoice-party-name" id="view-customer-name"><?php echo e($selectedCustomer ? $selectedCustomer['name'] : ''); ?></div>
+                    <div id="view-customer-company"<?php echo ($selectedCustomer && trim($selectedCustomer['company']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? $selectedCustomer['company'] : ''); ?></div>
+                    <div class="muted" id="view-customer-email"<?php echo ($selectedCustomer && trim($selectedCustomer['email']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? $selectedCustomer['email'] : ''); ?></div>
+                    <div class="muted" id="view-customer-phone"<?php echo ($selectedCustomer && trim((string) $selectedCustomer['phone']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? format_phone($selectedCustomer['phone']) : ''); ?></div>
+                </div>
+
+                <div class="inv-new-customer" id="new-customer-fields"<?php echo $customerMode === 'new' ? '' : ' hidden'; ?>>
+                    <div class="inv-new-grid">
+                        <p>
+                            <label for="new_name">Name <span class="req">*</span></label>
+                            <input id="new_name" type="text" name="new_name" value="<?php echo e($newCustomer['name']); ?>">
+                        </p>
+                        <p>
+                            <label for="new_company">Company</label>
+                            <input id="new_company" type="text" name="new_company" value="<?php echo e($newCustomer['company']); ?>">
+                        </p>
+                        <p>
+                            <label for="new_email">Email</label>
+                            <input id="new_email" type="email" name="new_email" value="<?php echo e($newCustomer['email']); ?>">
+                        </p>
+                        <p>
+                            <label for="new_phone">Phone</label>
+                            <input id="new_phone" type="tel" name="new_phone" inputmode="numeric" autocomplete="tel"
+                                   maxlength="14" placeholder="(555) 555-5555 or 1-800-234-1234" data-phone
+                                   value="<?php echo e(format_phone($newCustomer['phone'])); ?>">
+                        </p>
+                    </div>
                 </div>
             </div>
-
-            <div class="inv-new-customer" id="selected-customer-fields"<?php echo ($customerMode === 'existing' && $selectedCustomer) ? '' : ' hidden'; ?>>
-                <div class="inv-new-grid inv-customer-details">
-                    <p>
-                        <span class="inv-detail-label">Name</span>
-                        <span class="inv-detail-value" id="view-customer-name"><?php echo e($selectedCustomer ? $detailOrDash($selectedCustomer['name']) : '—'); ?></span>
-                    </p>
-                    <p>
-                        <span class="inv-detail-label">Company</span>
-                        <span class="inv-detail-value" id="view-customer-company"><?php echo e($selectedCustomer ? $detailOrDash($selectedCustomer['company']) : '—'); ?></span>
-                    </p>
-                    <p>
-                        <span class="inv-detail-label">Email</span>
-                        <span class="inv-detail-value" id="view-customer-email"><?php echo e($selectedCustomer ? $detailOrDash($selectedCustomer['email']) : '—'); ?></span>
-                    </p>
-                    <p>
-                        <span class="inv-detail-label">Phone</span>
-                        <span class="inv-detail-value" id="view-customer-phone"><?php echo e($selectedCustomer ? $detailOrDash(format_phone($selectedCustomer['phone'])) : '—'); ?></span>
-                    </p>
-                </div>
-            </div>
-
-            <div class="inv-new-customer" id="new-customer-fields"<?php echo $customerMode === 'new' ? '' : ' hidden'; ?>>
-                <div class="inv-new-grid">
-                    <p>
-                        <label for="new_name">Name <span class="req">*</span></label>
-                        <input id="new_name" type="text" name="new_name" value="<?php echo e($newCustomer['name']); ?>">
-                    </p>
-                    <p>
-                        <label for="new_company">Company</label>
-                        <input id="new_company" type="text" name="new_company" value="<?php echo e($newCustomer['company']); ?>">
-                    </p>
-                    <p>
-                        <label for="new_email">Email</label>
-                        <input id="new_email" type="email" name="new_email" value="<?php echo e($newCustomer['email']); ?>">
-                    </p>
-                    <p>
-                        <label for="new_phone">Phone</label>
-                        <input id="new_phone" type="tel" name="new_phone" inputmode="numeric" autocomplete="tel"
-                               maxlength="14" placeholder="(555) 555-5555" data-phone
-                               value="<?php echo e(format_phone($newCustomer['phone'])); ?>">
-                    </p>
-                </div>
+            <div class="invoice-due">
+                <div class="invoice-label">Balance due</div>
+                <div class="invoice-due-amount" id="live-balance"><?php echo e($currency); ?> 0.00</div>
             </div>
         </div>
 
-        <div class="inv-card inv-meta">
-            <p>
-                <label for="issue_date">Invoice Date <span class="req">*</span></label>
-                <span class="inv-date">
-                    <input id="issue_date" type="date" name="issue_date" required value="<?php echo e($invoice['issue_date']); ?>">
-                </span>
-            </p>
-            <p>
-                <label for="due_date">Due Date</label>
-                <span class="inv-date">
-                    <input id="due_date" type="date" name="due_date" required value="<?php echo e($invoice['due_date']); ?>">
-                </span>
-            </p>
-            <p>
-                <label for="invoice_number_display">Invoice Number <span class="req">*</span></label>
-                <input id="invoice_number_display" type="text" value="<?php echo e($displayNumber); ?>" readonly>
-            </p>
+        <div class="table-wrap">
+            <table class="data invoice-items inv-items">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th class="num inv-col-qty">Qty</th>
+                        <th class="num inv-col-price">Price</th>
+                        <th class="num inv-col-amt">Amount</th>
+                        <th class="inv-col-remove"></th>
+                    </tr>
+                </thead>
+                <tbody id="item-rows">
+                <?php foreach ($items as $item): ?>
+                    <tr class="inv-item">
+                        <td class="inv-col-desc" data-label="Description">
+                            <input type="text" name="items[description][]" placeholder="Item description" value="<?php echo e($item['description']); ?>">
+                        </td>
+                        <td class="num inv-col-qty" data-label="Qty">
+                            <input type="number" name="items[quantity][]" min="0" step="0.01" value="<?php echo e($item['quantity']); ?>">
+                        </td>
+                        <td class="num inv-col-price" data-label="Price">
+                            <span class="inv-price">
+                                <em><?php echo e($currency); ?></em>
+                                <input type="number" name="items[unit_price][]" min="0" step="0.01" value="<?php echo e($item['unit_price']); ?>">
+                            </span>
+                        </td>
+                        <td class="num inv-col-amt" data-label="Amount"><span class="line-total"><?php echo e($currency); ?> 0.00</span></td>
+                        <td class="inv-col-remove"><button type="button" class="inv-remove remove-item" title="Remove item">&times;</button></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
-    </div>
+        <button type="button" class="inv-add" id="add-item">+ Add item</button>
 
-    <div class="inv-card inv-items-card">
-        <table class="inv-items">
-            <thead>
-                <tr>
-                    <th class="inv-col-grip"></th>
-                    <th>Description</th>
-                    <th class="inv-col-qty">Qty</th>
-                    <th class="inv-col-price">Price</th>
-                    <th class="inv-col-amt">Amount</th>
-                    <th class="inv-col-remove"></th>
-                </tr>
-            </thead>
-            <tbody id="item-rows">
-            <?php foreach ($items as $item): ?>
-                <tr class="inv-item">
-                    <td class="inv-col-grip">
-                        <span class="inv-grip" title="Item" aria-hidden="true">
-                            <span></span><span></span><span></span><span></span><span></span><span></span>
-                        </span>
-                    </td>
-                    <td class="inv-col-desc" data-label="Description">
-                        <input type="text" name="items[description][]" placeholder="Type item description (optional)" value="<?php echo e($item['description']); ?>">
-                    </td>
-                    <td class="inv-col-qty" data-label="Qty">
-                        <input type="number" name="items[quantity][]" min="0" step="0.01" value="<?php echo e($item['quantity']); ?>">
-                    </td>
-                    <td class="inv-col-price" data-label="Price">
-                        <span class="inv-price">
-                            <em><?php echo e($currency); ?></em>
-                            <input type="number" name="items[unit_price][]" min="0" step="0.01" value="<?php echo e($item['unit_price']); ?>">
-                        </span>
-                    </td>
-                    <td class="num inv-col-amt" data-label="Amount"><span class="line-total"><?php echo e($currency); ?> 0.00</span></td>
-                    <td class="inv-col-remove"><button type="button" class="inv-remove remove-item" title="Remove item">&times;</button></td>
-                </tr>
-            <?php endforeach; ?>
-            </tbody>
-        </table>
-        <button type="button" class="inv-add" id="add-item">+ Add New Item</button>
-    </div>
-
-    <div class="inv-bottom">
-        <div class="inv-card inv-summary">
-            <div class="inv-sum-row">
-                <span>Sub Total</span>
-                <strong id="live-subtotal"><?php echo e($currency); ?> 0.00</strong>
+        <div class="invoice-bottom">
+            <div class="totals">
+                <div><span>Subtotal</span><span id="live-subtotal"><?php echo e($currency); ?> 0.00</span></div>
+                <div class="inv-discount">
+                    <span>Discount</span>
+                    <span class="inv-discount-controls">
+                        <input id="discount_value" type="number" min="0" step="0.01" name="discount_value" value="<?php echo e($invoice['discount_value']); ?>">
+                        <select id="discount_type" name="discount_type">
+                            <option value="fixed"<?php echo $invoice['discount_type'] === 'fixed' ? ' selected' : ''; ?>><?php echo e($currency); ?></option>
+                            <option value="percent"<?php echo $invoice['discount_type'] === 'percent' ? ' selected' : ''; ?>>%</option>
+                        </select>
+                    </span>
+                </div>
+                <div id="tax-row"<?php echo $showTax ? '' : ' hidden'; ?>>
+                    <span>Tax (%)</span>
+                    <input id="tax_rate" type="number" min="0" step="0.001" name="tax_rate" value="<?php echo e($invoice['tax_rate']); ?>">
+                </div>
+                <button type="button" class="inv-link" id="add-tax-btn"<?php echo $showTax ? ' hidden' : ''; ?>>+ Add tax</button>
+                <div id="tax-amount-row"<?php echo $showTax ? '' : ' hidden'; ?>>
+                    <span>Tax</span>
+                    <span id="live-tax"><?php echo e($currency); ?> 0.00</span>
+                </div>
+                <div class="grand"><span>Total</span><span id="live-total"><?php echo e($currency); ?> 0.00</span></div>
+                <span id="live-discount" hidden>0.00</span>
             </div>
-            <div class="inv-sum-row inv-discount">
-                <span>Discount</span>
-                <span class="inv-discount-controls">
-                    <input id="discount_value" type="number" min="0" step="0.01" name="discount_value" value="<?php echo e($invoice['discount_value']); ?>">
-                    <select id="discount_type" name="discount_type">
-                        <option value="fixed"<?php echo $invoice['discount_type'] === 'fixed' ? ' selected' : ''; ?>><?php echo e($currency); ?></option>
-                        <option value="percent"<?php echo $invoice['discount_type'] === 'percent' ? ' selected' : ''; ?>>%</option>
-                    </select>
-                </span>
-            </div>
-            <div class="inv-sum-row" id="tax-row"<?php echo $showTax ? '' : ' hidden'; ?>>
-                <span>Tax (%)</span>
-                <input id="tax_rate" type="number" min="0" step="0.001" name="tax_rate" value="<?php echo e($invoice['tax_rate']); ?>">
-            </div>
-            <button type="button" class="inv-link" id="add-tax-btn"<?php echo $showTax ? ' hidden' : ''; ?>>+ Add Tax</button>
-            <div class="inv-sum-row muted" id="tax-amount-row"<?php echo $showTax ? '' : ' hidden'; ?>>
-                <span>Tax</span>
-                <span id="live-tax"><?php echo e($currency); ?> 0.00</span>
-            </div>
-            <div class="inv-sum-row inv-total">
-                <span>Total Amount</span>
-                <strong id="live-total"><?php echo e($currency); ?> 0.00</strong>
-            </div>
-            <span id="live-discount" hidden>0.00</span>
-        </div>
-
-        <div class="inv-card inv-notes">
-            <div class="inv-notes-head">
-                <h2>Notes</h2>
-                <button type="button" class="inv-link" id="insert-note" data-note="<?php echo e(setting('default_notes')); ?>">+ Insert Note</button>
-            </div>
-            <textarea id="notes" name="notes" placeholder="Visible to your customer"><?php echo e($invoice['notes']); ?></textarea>
-            <div class="inv-terms inv-internal">
-                <h2>Internal note</h2>
-                <p class="muted">Only your team can see this. It is not on the invoice, PDF, or customer email.</p>
-                <textarea id="internal_notes" name="internal_notes" placeholder="Private reminder for your team"><?php echo e(isset($invoice['internal_notes']) ? $invoice['internal_notes'] : ''); ?></textarea>
-            </div>
-            <div class="inv-terms">
-                <h2>Terms</h2>
+            <div class="invoice-terms">
+                <div class="inv-notes-head">
+                    <h3>Notes</h3>
+                    <button type="button" class="inv-link" id="insert-note" data-note="<?php echo e(setting('default_notes')); ?>">+ Insert note</button>
+                </div>
+                <textarea id="notes" name="notes" placeholder="Visible to your customer"><?php echo e($invoice['notes']); ?></textarea>
+                <h3>Terms and conditions</h3>
                 <textarea id="terms" name="terms"><?php echo e($invoice['terms']); ?></textarea>
             </div>
         </div>
+
+        <?php if ($companyFooter): ?>
+            <div class="invoice-foot">
+                <?php foreach ($companyFooter as $line): ?>
+                    <span><?php echo e($line); ?></span>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="card internal-note-card">
+        <h2>Internal note</h2>
+        <p class="muted">Only your team can see this. Customers never see it on the invoice, PDF, or email.</p>
+        <textarea id="internal_notes" name="internal_notes" placeholder="Private reminder for your team"><?php echo e(isset($invoice['internal_notes']) ? $invoice['internal_notes'] : ''); ?></textarea>
     </div>
 
     <div class="inv-actions">

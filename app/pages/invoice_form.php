@@ -261,7 +261,7 @@ $detailOrDash = function ($value) {
                     <p>
                         <label for="new_phone">Phone</label>
                         <input id="new_phone" type="tel" name="new_phone" inputmode="numeric" autocomplete="tel"
-                               maxlength="14" placeholder="(555) 555-5555" data-phone
+                               maxlength="14" placeholder="(555) 555-5555 or 1-800-234-1234" data-phone
                                value="<?php echo e(format_phone($newCustomer['phone'])); ?>">
                     </p>
                 </div>

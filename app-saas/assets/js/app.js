@@ -111,10 +111,9 @@
     var row = document.createElement('tr');
     row.className = 'inv-item';
     row.innerHTML =
-      '<td class="inv-col-grip"><span class="inv-grip" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span></td>' +
-      '<td class="inv-col-desc" data-label="Item"><input type="text" name="items[description][]" placeholder="Type item description (optional)"></td>' +
-      '<td class="inv-col-qty" data-label="Quantity"><input type="number" name="items[quantity][]" min="0" step="0.01" value="1"></td>' +
-      '<td class="inv-col-price" data-label="Price"><span class="inv-price"><em>' + symbol + '</em><input type="number" name="items[unit_price][]" min="0" step="0.01" value="0"></span></td>' +
+      '<td class="inv-col-desc" data-label="Description"><input type="text" name="items[description][]" placeholder="Item description"></td>' +
+      '<td class="num inv-col-qty" data-label="Qty"><input type="number" name="items[quantity][]" min="0" step="0.01" value="1"></td>' +
+      '<td class="num inv-col-price" data-label="Price"><span class="inv-price"><em>' + symbol + '</em><input type="number" name="items[unit_price][]" min="0" step="0.01" value="0"></span></td>' +
       '<td class="num inv-col-amt" data-label="Amount"><span class="line-total">' + moneyText(0) + '</span></td>' +
       '<td class="inv-col-remove"><button type="button" class="inv-remove remove-item" title="Remove item">&times;</button></td>';
     tbody.appendChild(row);
@@ -150,6 +149,7 @@
     setMoney('live-subtotal', subtotal);
     setMoney('live-tax', tax);
     setMoney('live-total', total);
+    setMoney('live-balance', total);
     var discEl = document.getElementById('live-discount');
     if (discEl) discEl.textContent = discount.toFixed(2);
   }
@@ -197,11 +197,6 @@
   var viewEmail = document.getElementById('view-customer-email');
   var viewPhone = document.getElementById('view-customer-phone');
 
-  function customerDetail(value) {
-    var text = String(value || '').trim();
-    return text === '' ? '—' : text;
-  }
-
   function showNewCustomerFields() {
     if (customerMode) customerMode.value = 'new';
     if (customerId) customerId.value = '';
@@ -209,11 +204,18 @@
     if (newFields) newFields.hidden = false;
   }
 
+  function fillPartyLine(el, value) {
+    if (!el) return;
+    var text = String(value || '').trim();
+    el.textContent = text;
+    el.hidden = text === '';
+  }
+
   function fillSelectedCustomer(name, company, email, phone) {
-    if (viewName) viewName.textContent = customerDetail(name);
-    if (viewCompany) viewCompany.textContent = customerDetail(company);
-    if (viewEmail) viewEmail.textContent = customerDetail(email);
-    if (viewPhone) viewPhone.textContent = customerDetail(typeof formatPhone === 'function' ? formatPhone(phone) : phone);
+    fillPartyLine(viewName, name);
+    fillPartyLine(viewCompany, company);
+    fillPartyLine(viewEmail, email);
+    fillPartyLine(viewPhone, typeof formatPhone === 'function' ? formatPhone(phone) : phone);
     if (customerMode) customerMode.value = 'existing';
     if (selectedFields) selectedFields.hidden = false;
     if (newFields) newFields.hidden = true;
@@ -301,10 +303,8 @@
 
   function phoneDigits(value) {
     var digits = String(value || '').replace(/\D/g, '');
-    if (digits.length === 11 && digits.charAt(0) === '1') {
-      digits = digits.slice(1);
-    }
-    return digits.slice(0, 10);
+    var max = digits.charAt(0) === '1' ? 11 : 10;
+    return digits.slice(0, max);
   }
 
   function formatPhone(value) {
@@ -312,6 +312,22 @@
     var len = digits.length;
     if (!len) {
       return '';
+    }
+    if (digits.charAt(0) === '1') {
+      var out = '1';
+      var rest = digits.slice(1);
+      if (!rest) {
+        return out;
+      }
+      out += '-' + rest.slice(0, 3);
+      if (rest.length <= 3) {
+        return out;
+      }
+      out += '-' + rest.slice(3, 6);
+      if (rest.length <= 6) {
+        return out;
+      }
+      return out + '-' + rest.slice(6, 10);
     }
     if (len < 4) {
       return '(' + digits;
@@ -360,6 +376,23 @@
 
   var menuToggle = document.getElementById('menu-toggle');
   var navBackdrop = document.getElementById('nav-backdrop');
+  var sidebarCollapse = document.getElementById('sidebar-collapse');
+  function setNavCollapsed(collapsed) {
+    document.body.classList.toggle('nav-collapsed', collapsed);
+    try {
+      localStorage.setItem('ih-nav-collapsed', collapsed ? '1' : '0');
+    } catch (err) {}
+    if (sidebarCollapse) {
+      sidebarCollapse.setAttribute('aria-label', collapsed ? 'Expand menu' : 'Collapse menu');
+      sidebarCollapse.title = collapsed ? 'Expand menu' : 'Collapse menu';
+    }
+  }
+  if (sidebarCollapse) {
+    setNavCollapsed(document.body.classList.contains('nav-collapsed'));
+    sidebarCollapse.addEventListener('click', function () {
+      setNavCollapsed(!document.body.classList.contains('nav-collapsed'));
+    });
+  }
   function setNavOpen(open) {
     document.body.classList.toggle('nav-open', open);
     if (menuToggle) {

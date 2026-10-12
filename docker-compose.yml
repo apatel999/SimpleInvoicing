@@ -14,6 +14,7 @@ services:
       DB_PASS: ${MYSQL_PASSWORD}
       APP_URL: ${APP_URL:-http://localhost:8080}
       APP_SECRET: ${APP_SECRET}
+      SI_DEBUG: ${SI_DEBUG:-1}
     depends_on:
       db:
         condition: service_healthy
@@ -34,6 +35,7 @@ services:
       DB_PASS: ${MYSQL_PASSWORD}
       APP_URL: ${SAAS_URL:-http://localhost:8084}
       APP_SECRET: ${APP_SECRET}
+      SI_DEBUG: ${SI_DEBUG:-1}
     depends_on:
       db:
         condition: service_healthy
@@ -43,15 +45,17 @@ services:
     image: mariadb:11.4
     container_name: simpleinvoicing-db
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - ./data/mysql:/var/lib/mysql
       - ./app/sql/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
+      - ./docker/mysql/02-saas-db.sh:/docker-entrypoint-initdb.d/02-saas-db.sh:ro
     environment:
       MARIADB_DATABASE: ${MYSQL_DATABASE}
       MARIADB_USER: ${MYSQL_USER}
       MARIADB_PASSWORD: ${MYSQL_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SAAS_DATABASE: ${SAAS_DATABASE:-invoicehost}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s

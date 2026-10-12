@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p>
                     <label for="company_phone">Phone</label>
                     <input id="company_phone" type="tel" name="company_phone" inputmode="numeric" autocomplete="tel"
-                           maxlength="14" placeholder="(555) 555-5555" data-phone
+                           maxlength="14" placeholder="(555) 555-5555 or 1-800-234-1234" data-phone
                            value="<?php echo e(format_phone(setting('company_phone'))); ?>">
                 </p>
                 <p>

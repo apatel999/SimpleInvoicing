@@ -26,6 +26,19 @@ require __DIR__ . '/layout.php';
 
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_name('si_saas_session');
+    $cookiePath = function_exists('base_path') ? base_path() : '';
+    if ($cookiePath === '') {
+        $cookiePath = '/';
+    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+    session_set_cookie_params(array(
+        'lifetime' => 0,
+        'path' => $cookiePath,
+        'secure' => $https,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ));
     session_start();
 }
 

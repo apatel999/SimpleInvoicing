@@ -28,5 +28,5 @@ define('APP_URL', si_env('APP_URL', ''));
 /** Random string used to sign public invoice links. Change this on hosting. */
 define('APP_SECRET', si_env('APP_SECRET', 'change-this-to-a-long-random-string'));
 
-/** Set to false after the 500 error is fixed. Shows PHP errors on the page. */
-define('SI_DEBUG', true);
+/** Set SI_DEBUG=0 on the server so PHP errors are not shown to visitors. */
+define('SI_DEBUG', filter_var(si_env('SI_DEBUG', '1'), FILTER_VALIDATE_BOOLEAN));

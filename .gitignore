@@ -1,3 +1,4 @@
 .env
 /data/mysql/
+/deploy/export/
 app123-site/brevo-config.php

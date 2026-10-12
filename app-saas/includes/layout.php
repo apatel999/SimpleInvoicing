@@ -23,6 +23,7 @@ function render_app($pageTitle, $content, $currentPage)
     $flashOk = flash('success');
     $flashErr = flash('error');
     $sub = $platform ? null : current_subscription();
+    $navFooter = array();
     if ($platform) {
         $navGroups = array(
             array(
@@ -40,10 +41,10 @@ function render_app($pageTitle, $content, $currentPage)
                 'invoices' => array('Invoices', url('invoices')),
                 'payments' => array('Payments', url('payments')),
             ),
-            array(
-                'email_templates' => array('Email templates', url('email_templates')),
-                'settings' => array('Settings', url('settings')),
-            ),
+        );
+        $navFooter = array(
+            'email_templates' => array('Email templates', url('email_templates')),
+            'settings' => array('Settings', url('settings')),
         );
     }
     ?>
@@ -55,10 +56,11 @@ function render_app($pageTitle, $content, $currentPage)
     <title><?php echo e($pageTitle); ?> · <?php echo e($company); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?php echo e(invoice_ui_font_href()); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
 </head>
 <body<?php echo !empty($GLOBALS['page_class']) ? ' class="' . e($GLOBALS['page_class']) . '"' : ''; ?>>
+<script>try{if(localStorage.getItem('ih-nav-collapsed')==='1')document.body.classList.add('nav-collapsed');}catch(e){}</script>
 <div class="app">
     <header class="app-header">
         <button type="button" class="menu-toggle" id="menu-toggle" aria-label="Open menu" aria-expanded="false" aria-controls="sidebar">
@@ -89,15 +91,31 @@ function render_app($pageTitle, $content, $currentPage)
             <?php foreach ($navGroups as $group): ?>
                 <div class="nav-group">
                     <?php foreach ($group as $key => $item): ?>
-                        <a class="nav-link<?php echo $currentPage === $key ? ' is-active' : ''; ?>" href="<?php echo e($item[1]); ?>">
+                        <a class="nav-link<?php echo $currentPage === $key ? ' is-active' : ''; ?>" href="<?php echo e($item[1]); ?>" title="<?php echo e($item[0]); ?>">
                             <span class="nav-icon"><?php echo nav_icon($key); ?></span>
-                            <span><?php echo e($item[0]); ?></span>
+                            <span class="nav-label"><?php echo e($item[0]); ?></span>
                         </a>
                     <?php endforeach; ?>
                 </div>
             <?php endforeach; ?>
         </nav>
+        <?php if ($navFooter): ?>
+        <nav class="nav-end">
+            <?php foreach ($navFooter as $key => $item): ?>
+                <a class="nav-link<?php echo $currentPage === $key ? ' is-active' : ''; ?>" href="<?php echo e($item[1]); ?>" title="<?php echo e($item[0]); ?>">
+                    <span class="nav-icon"><?php echo nav_icon($key); ?></span>
+                    <span class="nav-label"><?php echo e($item[0]); ?></span>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+        <?php endif; ?>
         <a class="sidebar-logout" href="<?php echo e(url('logout')); ?>">Log out</a>
+        <button type="button" class="sidebar-collapse" id="sidebar-collapse" aria-label="Collapse menu" title="Collapse menu">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M11 6.5 5.5 12 11 17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17.5 6.5 12 12 17.5 17.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
     </aside>
     <div class="main">
         <header class="topbar<?php echo !empty($GLOBALS['hide_page_title']) ? ' topbar-compact' : ''; ?>">
@@ -161,7 +179,7 @@ function render_auth($pageTitle, $content)
     <title><?php echo e($pageTitle); ?> · <?php echo e($company); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?php echo e(invoice_ui_font_href()); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
 </head>
 <body class="auth-body">

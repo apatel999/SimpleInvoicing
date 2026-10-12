@@ -203,48 +203,94 @@ function default_setting_rows()
 
 function default_email_templates()
 {
+    $viewInvoice = '<p style="margin:28px 0 8px">'
+        . '<a href="{{invoice_link}}" style="display:inline-block;background:#5851ea;color:#ffffff;text-decoration:none;'
+        . 'font-weight:600;font-size:14px;line-height:1;padding:12px 22px;border-radius:6px">View invoice</a></p>'
+        . '<p style="margin:0 0 22px;font-size:13px;color:#6b7280">Or open this link: {{invoice_link}}</p>';
+    $signoff = '<p style="margin:28px 0 0">If you have questions about this invoice, reply to this email and we will be glad to help.</p>'
+        . '<p style="margin:22px 0 0">Kind regards,<br>{{company_name}}</p>';
+
     return array(
         array(
             'slug' => 'invoice_sent',
             'name' => 'Invoice sent',
             'subject' => 'Invoice {{invoice_number}} from {{company_name}}',
-            'body' => '<p>Hello {{customer_name}},</p>
-<p>Please find invoice <strong>{{invoice_number}}</strong> dated {{issue_date}}.</p>
-<p>Amount due: <strong>{{invoice_total}}</strong><br>
+            'body' => '<p>Dear {{customer_name}},</p>
+<p>Please find invoice <strong>{{invoice_number}}</strong> for your records. A copy is included below.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Invoice date: {{issue_date}}<br>
+Amount due: <strong style="color:#111827">{{invoice_total}}</strong><br>
 Due date: {{due_date}}</p>
-<p>You can view the invoice here: {{invoice_link}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+' . $viewInvoice . $signoff,
         ),
         array(
             'slug' => 'payment_received',
             'name' => 'Payment received',
             'subject' => 'Payment received for invoice {{invoice_number}}',
-            'body' => '<p>Hello {{customer_name}},</p>
-<p>We have received a payment of <strong>{{payment_amount}}</strong> for invoice <strong>{{invoice_number}}</strong>.</p>
-<p>Remaining balance: {{balance_due}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+            'body' => '<p>Dear {{customer_name}},</p>
+<p>Thank you. We have received your payment of <strong>{{payment_amount}}</strong> toward invoice <strong>{{invoice_number}}</strong>.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Remaining balance: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>A receipt summary is included below.</p>
+' . $signoff,
         ),
         array(
             'slug' => 'invoice_reminder',
             'name' => 'Invoice reminder',
-            'subject' => 'Reminder: invoice {{invoice_number}} is due on {{due_date}}',
-            'body' => '<p>Hello {{customer_name}},</p>
-<p>This is a friendly reminder that invoice <strong>{{invoice_number}}</strong> is due on {{due_date}}.</p>
-<p>Amount due: <strong>{{balance_due}}</strong></p>
-<p>View invoice: {{invoice_link}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+            'subject' => 'Reminder: invoice {{invoice_number}} is due {{due_date}}',
+            'body' => '<p>Dear {{customer_name}},</p>
+<p>This is a courtesy reminder that invoice <strong>{{invoice_number}}</strong> is due on <strong>{{due_date}}</strong>.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Amount due: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>Please arrange payment by the due date. You can review the invoice using the button below.</p>
+' . $viewInvoice . $signoff,
         ),
         array(
             'slug' => 'invoice_overdue',
             'name' => 'Overdue invoice',
-            'subject' => 'Overdue: invoice {{invoice_number}}',
-            'body' => '<p>Hello {{customer_name}},</p>
-<p>Invoice <strong>{{invoice_number}}</strong> is now overdue. The original due date was {{due_date}}.</p>
-<p>Outstanding balance: <strong>{{balance_due}}</strong></p>
-<p>Please arrange payment at your earliest convenience.</p>
-<p>{{company_name}}</p>',
+            'subject' => 'Invoice {{invoice_number}} is now overdue',
+            'body' => '<p>Dear {{customer_name}},</p>
+<p>Invoice <strong>{{invoice_number}}</strong> is now past due. The original due date was {{due_date}}.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Outstanding balance: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>Please arrange payment at your earliest convenience. If payment has already been sent, you may disregard this notice.</p>
+' . $viewInvoice . $signoff,
         ),
     );
+}
+
+function upgrade_stock_email_templates()
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+    $done = true;
+    $old = array(
+        'Please find invoice <strong>{{invoice_number}}</strong> dated {{issue_date}}.',
+        'We have received a payment of <strong>{{payment_amount}}</strong>',
+        'This is a friendly reminder that invoice',
+        'Invoice <strong>{{invoice_number}}</strong> is now overdue.',
+    );
+    $defaults = array();
+    foreach (default_email_templates() as $row) {
+        $defaults[$row['slug']] = $row;
+    }
+    $rows = db()->query('SELECT id, slug, body FROM email_templates')->fetchAll();
+    $upd = db()->prepare('UPDATE email_templates SET name = ?, subject = ?, body = ? WHERE id = ?');
+    foreach ($rows as $row) {
+        if (!isset($defaults[$row['slug']])) {
+            continue;
+        }
+        $stock = false;
+        foreach ($old as $snippet) {
+            if (strpos($row['body'], $snippet) !== false) {
+                $stock = true;
+                break;
+            }
+        }
+        if (!$stock) {
+            continue;
+        }
+        $next = $defaults[$row['slug']];
+        $upd->execute(array($next['name'], $next['subject'], $next['body'], $row['id']));
+    }
 }
 
 function seed_tenant_defaults($tenantId, $companyName = 'My Company')

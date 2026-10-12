@@ -28,7 +28,7 @@ $company = setting('company_name', 'My Company');
     <title><?php echo e($invoice['invoice_number']); ?> · <?php echo e($company); ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="<?php echo e(invoice_ui_font_href()); ?>" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
 </head>
 <body>

@@ -1,0 +1,17 @@
+# On the server:
+#   1. Set SAAS_PORT=80, SI_DEBUG=0, and SAAS_URL=https://yourdomain.com in .env
+#   2. docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This starts InvoiceHost + MariaDB only (not the single-tenant app or phpMyAdmin).
+# Put Caddy, nginx, or Cloudflare in front for HTTPS.
+
+services:
+  web:
+    profiles: ["single-tenant"]
+
+  phpmyadmin:
+    profiles: ["tools"]
+
+  web-saas:
+    environment:
+      SI_DEBUG: ${SI_DEBUG:-0}

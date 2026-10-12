@@ -165,6 +165,21 @@ function company_logo_absolute_url()
     return base_url() . '/' . ltrim(str_replace('\\', '/', setting('logo_path')), '/');
 }
 
+function company_logo_email_src()
+{
+    $file = company_logo_file();
+    if ($file === '') {
+        return '';
+    }
+    $info = @getimagesize($file);
+    $mime = ($info && !empty($info['mime'])) ? $info['mime'] : 'image/png';
+    $data = @file_get_contents($file);
+    if ($data !== false && $data !== '' && strlen($data) <= 200000) {
+        return 'data:' . $mime . ';base64,' . base64_encode($data);
+    }
+    return 'cid:company-logo';
+}
+
 function handle_company_logo_upload()
 {
     $dir = dirname(__DIR__) . '/uploads';
@@ -231,10 +246,8 @@ function format_date($date)
 function phone_digits($value)
 {
     $digits = preg_replace('/\D+/', '', (string) $value);
-    if (strlen($digits) === 11 && isset($digits[0]) && $digits[0] === '1') {
-        $digits = substr($digits, 1);
-    }
-    return substr($digits, 0, 10);
+    $max = (isset($digits[0]) && $digits[0] === '1') ? 11 : 10;
+    return substr($digits, 0, $max);
 }
 
 function format_phone($value)
@@ -243,6 +256,22 @@ function format_phone($value)
     $len = strlen($digits);
     if ($len === 0) {
         return '';
+    }
+    if ($digits[0] === '1') {
+        $out = '1';
+        $rest = substr($digits, 1);
+        if ($rest === '') {
+            return $out;
+        }
+        $out .= '-' . substr($rest, 0, 3);
+        if (strlen($rest) <= 3) {
+            return $out;
+        }
+        $out .= '-' . substr($rest, 3, 3);
+        if (strlen($rest) <= 6) {
+            return $out;
+        }
+        return $out . '-' . substr($rest, 6, 4);
     }
     if ($len < 4) {
         return '(' . $digits;
@@ -259,8 +288,10 @@ function normalize_phone($value, &$error = null)
     if ($digits === '') {
         return '';
     }
-    if (strlen($digits) !== 10) {
-        $error = 'Phone must be 10 digits.';
+    $len = strlen($digits);
+    $ok = ($digits[0] === '1' && $len === 11) || ($digits[0] !== '1' && $len === 10);
+    if (!$ok) {
+        $error = 'Phone must be 10 digits, or 11 digits starting with 1.';
         return format_phone($digits);
     }
     return format_phone($digits);
@@ -383,6 +414,16 @@ function invoice_public_url($id)
         'id' => (int) $id,
         'token' => invoice_public_token($id),
     ));
+}
+
+function invoice_ui_font()
+{
+    return 'Inter, system-ui, "Segoe UI", sans-serif';
+}
+
+function invoice_ui_font_href()
+{
+    return 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';
 }
 
 function apply_template($text, $vars)

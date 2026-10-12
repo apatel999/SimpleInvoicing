@@ -71,14 +71,197 @@ function si_pdf_wrap($text, $fontSize, $maxWidth)
     return $out;
 }
 
+function si_pdf_text_width($text, $size, $bold = false)
+{
+    return strlen(si_pdf_latin($text)) * $size * ($bold ? 0.55 : 0.5);
+}
+
+function si_pdf_paeth($a, $b, $c)
+{
+    $p = $a + $b - $c;
+    $pa = abs($p - $a);
+    $pb = abs($p - $b);
+    $pc = abs($p - $c);
+    if ($pa <= $pb && $pa <= $pc) {
+        return $a;
+    }
+    if ($pb <= $pc) {
+        return $b;
+    }
+    return $c;
+}
+
+function si_pdf_png_recon($filter, $scan, $prior, $bpp)
+{
+    $len = strlen($scan);
+    $out = '';
+    for ($i = 0; $i < $len; $i++) {
+        $x = ord($scan[$i]);
+        $a = $i >= $bpp ? ord($out[$i - $bpp]) : 0;
+        $b = $prior !== '' ? ord($prior[$i]) : 0;
+        $c = ($i >= $bpp && $prior !== '') ? ord($prior[$i - $bpp]) : 0;
+        if ($filter === 1) {
+            $x = ($x + $a) & 255;
+        } elseif ($filter === 2) {
+            $x = ($x + $b) & 255;
+        } elseif ($filter === 3) {
+            $x = ($x + (int) floor(($a + $b) / 2)) & 255;
+        } elseif ($filter === 4) {
+            $x = ($x + si_pdf_paeth($a, $b, $c)) & 255;
+        }
+        $out .= chr($x);
+    }
+    return $out;
+}
+
+function si_pdf_png_to_rgb($bin)
+{
+    if (strlen($bin) < 16 || substr($bin, 0, 8) !== "\x89PNG\x0d\x0a\x1a\x0a") {
+        return null;
+    }
+    $pos = 8;
+    $len = strlen($bin);
+    $width = 0;
+    $height = 0;
+    $bit = 0;
+    $color = 0;
+    $interlace = 0;
+    $idat = '';
+    $plte = '';
+    $trns = '';
+    while ($pos + 8 <= $len) {
+        $n = unpack('N', substr($bin, $pos, 4));
+        $n = $n[1];
+        $type = substr($bin, $pos + 4, 4);
+        $data = substr($bin, $pos + 8, $n);
+        $pos += 12 + $n;
+        if ($type === 'IHDR' && strlen($data) >= 13) {
+            $ihdr = unpack('Nwidth/Nheight/Cbit/Ccolor/Ccomp/Cfilt/Cinter', $data);
+            $width = (int) $ihdr['width'];
+            $height = (int) $ihdr['height'];
+            $bit = (int) $ihdr['bit'];
+            $color = (int) $ihdr['color'];
+            $interlace = (int) $ihdr['inter'];
+        } elseif ($type === 'PLTE') {
+            $plte = $data;
+        } elseif ($type === 'tRNS') {
+            $trns = $data;
+        } elseif ($type === 'IDAT') {
+            $idat .= $data;
+        } elseif ($type === 'IEND') {
+            break;
+        }
+    }
+    if ($width < 1 || $height < 1 || $bit !== 8 || $interlace !== 0 || $idat === '') {
+        return null;
+    }
+    $raw = @gzuncompress($idat);
+    if ($raw === false) {
+        return null;
+    }
+    $channels = array(0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4);
+    if (!isset($channels[$color])) {
+        return null;
+    }
+    $cpp = $channels[$color];
+    $stride = $width * $cpp;
+    if (strlen($raw) < $height * ($stride + 1)) {
+        return null;
+    }
+    $rgb = '';
+    $prior = str_repeat("\x00", $stride);
+    $offset = 0;
+    for ($y = 0; $y < $height; $y++) {
+        $filter = ord($raw[$offset]);
+        $scan = substr($raw, $offset + 1, $stride);
+        $offset += $stride + 1;
+        $row = si_pdf_png_recon($filter, $scan, $prior, $cpp);
+        $prior = $row;
+        for ($x = 0; $x < $width; $x++) {
+            $i = $x * $cpp;
+            if ($color === 2) {
+                $rgb .= substr($row, $i, 3);
+            } elseif ($color === 6) {
+                $r = ord($row[$i]);
+                $g = ord($row[$i + 1]);
+                $b = ord($row[$i + 2]);
+                $a = ord($row[$i + 3]);
+                $rgb .= chr((int) round($r * $a / 255 + 255 * (255 - $a) / 255));
+                $rgb .= chr((int) round($g * $a / 255 + 255 * (255 - $a) / 255));
+                $rgb .= chr((int) round($b * $a / 255 + 255 * (255 - $a) / 255));
+            } elseif ($color === 0) {
+                $rgb .= str_repeat($row[$i], 3);
+            } elseif ($color === 4) {
+                $v = ord($row[$i]);
+                $a = ord($row[$i + 1]);
+                $v = (int) round($v * $a / 255 + 255 * (255 - $a) / 255);
+                $rgb .= chr($v) . chr($v) . chr($v);
+            } elseif ($color === 3) {
+                $idx = ord($row[$i]);
+                $pr = $pg = $pb = 255;
+                if (strlen($plte) >= ($idx + 1) * 3) {
+                    $pr = ord($plte[$idx * 3]);
+                    $pg = ord($plte[$idx * 3 + 1]);
+                    $pb = ord($plte[$idx * 3 + 2]);
+                }
+                $a = 255;
+                if ($trns !== '' && isset($trns[$idx])) {
+                    $a = ord($trns[$idx]);
+                }
+                $rgb .= chr((int) round($pr * $a / 255 + 255 * (255 - $a) / 255));
+                $rgb .= chr((int) round($pg * $a / 255 + 255 * (255 - $a) / 255));
+                $rgb .= chr((int) round($pb * $a / 255 + 255 * (255 - $a) / 255));
+            }
+        }
+    }
+    $compressed = gzcompress($rgb, 9);
+    if ($compressed === false) {
+        return null;
+    }
+    return array(
+        'width' => $width,
+        'height' => $height,
+        'data' => $compressed,
+        'filter' => 'FlateDecode',
+    );
+}
+
+function si_pdf_load_logo()
+{
+    $file = company_logo_file();
+    if ($file === '') {
+        return null;
+    }
+    $bin = @file_get_contents($file);
+    if ($bin === false || $bin === '') {
+        return null;
+    }
+    $info = @getimagesize($file);
+    $type = $info ? (int) $info[2] : 0;
+    if ($type === IMAGETYPE_JPEG) {
+        return array(
+            'width' => (int) $info[0],
+            'height' => (int) $info[1],
+            'data' => $bin,
+            'filter' => 'DCTDecode',
+        );
+    }
+    if ($type === IMAGETYPE_PNG || substr($bin, 0, 8) === "\x89PNG\x0d\x0a\x1a\x0a") {
+        return si_pdf_png_to_rgb($bin);
+    }
+    return null;
+}
+
 function si_build_invoice_pdf($invoice, $items, $balance)
 {
     $pageW = 595.28;
     $pageH = 841.89;
     $margin = 48.0;
     $contentW = $pageW - ($margin * 2);
+    $right = $pageW - $margin;
     $pages = array();
     $y = 0;
+    $logo = si_pdf_load_logo();
 
     $newPage = function () use (&$pages, &$y, $pageH, $margin) {
         $pages[] = '';
@@ -89,16 +272,25 @@ function si_build_invoice_pdf($invoice, $items, $balance)
         $pages[count($pages) - 1] .= $chunk;
     };
 
-    $text = function ($x, $pdfY, $size, $string, $bold = false) use ($write) {
-        $font = $bold ? 'F2' : 'F1';
+    $text = function ($x, $pdfY, $size, $string, $bold = false, $gray = 0) use ($write) {
+        if ($gray > 0) {
+            $write(sprintf("%.2f g\n", $gray));
+        }
         $write(sprintf(
             "BT /%s %.2f Tf 1 0 0 1 %.2f %.2f Tm (%s) Tj ET\n",
-            $font,
+            $bold ? 'F2' : 'F1',
             $size,
             $x,
             $pdfY,
             si_pdf_escape($string)
         ));
+        if ($gray > 0) {
+            $write("0 g\n");
+        }
+    };
+
+    $textRight = function ($rightX, $pdfY, $size, $string, $bold = false, $gray = 0) use ($text) {
+        $text($rightX - si_pdf_text_width($string, $size, $bold), $pdfY, $size, $string, $bold, $gray);
     };
 
     $line = function ($x1, $y1, $x2, $y2, $width = 0.6) use ($write) {
@@ -110,15 +302,17 @@ function si_build_invoice_pdf($invoice, $items, $balance)
     };
 
     $ensure = function ($need) use (&$y, $newPage, $margin) {
-        if ($y - $need < $margin + 24) {
+        if ($y - $need < $margin + 36) {
             $newPage();
+            return true;
         }
+        return false;
     };
 
     $company = setting('company_name', 'My Company');
     $blocks = company_contact_blocks();
-    $companyLines = array_merge(array($company), $blocks['contact'], $blocks['address']);
-    $customerLines = array($invoice['customer_name']);
+    $footer = array_merge($blocks['contact'], $blocks['address']);
+    $customerLines = array();
     if (!empty($invoice['customer_company'])) {
         $customerLines[] = $invoice['customer_company'];
     }
@@ -130,140 +324,186 @@ function si_build_invoice_pdf($invoice, $items, $balance)
         $customerLines[] = $invoice['customer_email'];
     }
     if (!empty($invoice['customer_phone'])) {
-        $customerLines[] = $invoice['customer_phone'];
+        $customerLines[] = format_phone($invoice['customer_phone']);
     }
-    if (!empty($invoice['tax_number'])) {
-        $customerLines[] = 'Tax ID: ' . $invoice['tax_number'];
-    }
+
+    $colQty = $margin + 318;
+    $colPrice = $margin + 400;
+    $colAmt = $right - 8;
+    $descWidth = 250;
+
+    $baseline = function ($boxBottom, $boxH, $fontSize) {
+        return $boxBottom + ($boxH / 2) - ($fontSize * 0.35);
+    };
+
+    $drawTableHeader = function () use (&$y, $rectFill, $text, $textRight, $baseline, $margin, $contentW, $colQty, $colPrice, $colAmt) {
+        $barH = 26;
+        $boxBottom = $y - $barH;
+        $rectFill($margin, $boxBottom, $contentW, $barH, 0.945);
+        $base = $baseline($boxBottom, $barH, 8);
+        $text($margin + 8, $base, 8, 'DESCRIPTION', true);
+        $textRight($colQty, $base, 8, 'QTY', true);
+        $textRight($colPrice, $base, 8, 'PRICE', true);
+        $textRight($colAmt, $base, 8, 'AMOUNT', true);
+        $y = $boxBottom;
+    };
 
     $newPage();
 
-    $headerY = $y;
-    $text($margin, $y - 4, 16, $company, true);
-    $y -= 22;
-    foreach (array_slice($companyLines, 1) as $row) {
-        $text($margin, $y, 9, $row);
+    $headerTop = $y;
+    $leftY = $y;
+    if ($logo) {
+        $maxW = 128.0;
+        $maxH = 42.0;
+        $scale = min($maxW / $logo['width'], $maxH / $logo['height'], 1);
+        $lw = $logo['width'] * $scale;
+        $lh = $logo['height'] * $scale;
+        $write(sprintf("q %.2f 0 0 %.2f %.2f %.2f cm /Im1 Do Q\n", $lw, $lh, $margin, $leftY - $lh));
+        $leftY -= $lh + 10;
+    }
+    $text($margin, $leftY, 12, $company, true);
+    $leftY -= 18;
+
+    $textRight($right, $headerTop, 16, 'INVOICE', true);
+    $meta = array(
+        array('Invoice No', $invoice['invoice_number']),
+        array('Invoice date', format_date($invoice['issue_date'])),
+        array('Due date', format_date($invoice['due_date'])),
+    );
+    $metaY = $headerTop - 26;
+    foreach ($meta as $row) {
+        $text($right - 200, $metaY, 9, $row[0], false, 0.45);
+        $textRight($right, $metaY, 10, $row[1], true);
+        $metaY -= 14;
+    }
+    $y = min($leftY, $metaY) - 18;
+
+    $text($margin, $y, 8, 'INVOICE TO', true, 0.45);
+    $textRight($right, $y, 8, 'BALANCE DUE', true, 0.45);
+    $y -= 16;
+    $text($margin, $y, 12, $invoice['customer_name'], true);
+    $textRight($right, $y, 16, money($balance), true);
+    $y -= 16;
+    foreach ($customerLines as $row) {
+        $text($margin, $y, 9, $row, false, 0.35);
         $y -= 12;
     }
-    $metaX = $margin + 320;
-    $text($metaX, $headerY - 4, 18, 'INVOICE', true);
-    $text($metaX, $headerY - 24, 10, 'Invoice No  ' . $invoice['invoice_number']);
-    $text($metaX, $headerY - 38, 10, 'Invoice date  ' . format_date($invoice['issue_date']));
-    $text($metaX, $headerY - 52, 10, 'Due date  ' . format_date($invoice['due_date']));
-    $y = min($y, $headerY - 70);
+    $y -= 14;
 
-    $y -= 10;
-    $line($margin, $y, $pageW - $margin, $y, 0.8);
-    $y -= 22;
-
-    $text($margin, $y, 8, 'INVOICE TO', true);
-    $text($margin + 320, $y, 8, 'BALANCE DUE', true);
-    $y -= 16;
-    $text($margin, $y, 12, $customerLines[0], true);
-    $text($margin + 320, $y, 14, money($balance), true);
-    $y -= 16;
-    foreach (array_slice($customerLines, 1) as $row) {
-        $text($margin, $y, 9, $row);
-        $y -= 12;
-    }
-    $y -= 10;
-
-    $colDesc = $margin;
-    $colQty = $margin + 278;
-    $colPrice = $margin + 348;
-    $colAmt = $margin + 430;
-    $headerH = 18;
     $ensure(40);
-    $rectFill($margin, $y - 12, $contentW, $headerH, 0.94);
-    $text($colDesc + 6, $y - 8, 8, 'DESCRIPTION', true);
-    $text($colQty, $y - 8, 8, 'QTY', true);
-    $text($colPrice, $y - 8, 8, 'PRICE', true);
-    $text($colAmt, $y - 8, 8, 'AMOUNT', true);
-    $y -= 26;
+    $drawTableHeader();
 
     foreach ($items as $item) {
-        $descLines = si_pdf_wrap($item['description'], 9, 260);
+        $descLines = si_pdf_wrap($item['description'], 10, $descWidth);
         if (!$descLines) {
             $descLines = array('');
         }
-        $rowH = max(16, count($descLines) * 12 + 6);
-        $ensure($rowH + 8);
-        $rowTop = $y;
-        $text($colDesc + 6, $rowTop, 9, $descLines[0]);
-        for ($i = 1; $i < count($descLines); $i++) {
-            $text($colDesc + 6, $rowTop - ($i * 12), 9, $descLines[$i]);
+        $fontSize = 10;
+        $lineH = 13;
+        $pad = 9;
+        $n = count($descLines);
+        $blockH = $fontSize + (($n - 1) * $lineH);
+        $rowH = $pad + $blockH + $pad;
+        if ($ensure($rowH + 8)) {
+            $drawTableHeader();
         }
-        $text($colQty, $rowTop, 9, (string) $item['quantity']);
-        $text($colPrice, $rowTop, 9, money($item['unit_price']));
-        $text($colAmt, $rowTop, 9, money($item['line_total']));
-        $y = $rowTop - $rowH;
-        $line($margin, $y + 4, $pageW - $margin, $y + 4, 0.3);
-        $y -= 4;
+        $boxBottom = $y - $rowH;
+        $firstBase = $boxBottom + ($rowH / 2) + (($n - 1) * $lineH / 2) - ($fontSize * 0.35);
+        foreach ($descLines as $i => $descLine) {
+            $text($margin + 8, $firstBase - ($i * $lineH), $fontSize, $descLine);
+        }
+        $numBase = $baseline($boxBottom, $rowH, $fontSize);
+        $textRight($colQty, $numBase, $fontSize, (string) $item['quantity']);
+        $textRight($colPrice, $numBase, $fontSize, money($item['unit_price']));
+        $textRight($colAmt, $numBase, $fontSize, money($item['line_total']));
+        $y = $boxBottom;
+        $line($margin, $y, $right, $y, 0.4);
     }
 
-    $y -= 8;
+    $y -= 12;
     $totals = array(
-        array('Subtotal', money($invoice['subtotal'])),
+        array('Subtotal', money($invoice['subtotal']), false),
     );
     if ((float) $invoice['discount_amount'] > 0) {
-        $totals[] = array('Discount', money($invoice['discount_amount']));
+        $totals[] = array('Discount', money($invoice['discount_amount']), false);
     }
     if ((float) $invoice['tax_amount'] > 0) {
-        $totals[] = array('Tax (' . $invoice['tax_rate'] . '%)', money($invoice['tax_amount']));
+        $totals[] = array('Tax (' . $invoice['tax_rate'] . '%)', money($invoice['tax_amount']), false);
     }
     $totals[] = array('Total', money($invoice['total']), true);
     if ((float) $invoice['amount_paid'] > 0) {
-        $totals[] = array('Paid', money($invoice['amount_paid']));
+        $totals[] = array('Paid', money($invoice['amount_paid']), false);
         $totals[] = array('Balance', money($balance), true);
     }
-    $ensure(count($totals) * 16 + 20);
-    $labelX = $margin + 300;
-    $valueX = $margin + 430;
+    $ensure(count($totals) * 18 + 16);
+    $totalsLeft = $right - 200;
     foreach ($totals as $row) {
-        $bold = !empty($row[2]);
-        if ($bold) {
-            $rectFill($labelX - 8, $y - 6, 205, 18, 0.94);
+        if ($row[2]) {
+            $rectFill($totalsLeft - 8, $y - 6, 208, 20, 0.945);
         }
-        $text($labelX, $y, 10, $row[0], $bold);
-        $text($valueX, $y, 10, $row[1], $bold);
+        $text($totalsLeft, $y, 10, $row[0], $row[2]);
+        $textRight($right - 8, $y, 10, $row[1], $row[2]);
         $y -= 18;
     }
 
-    $y -= 16;
+    $y -= 18;
     if (!empty($invoice['notes'])) {
         $noteLines = si_pdf_wrap($invoice['notes'], 9, $contentW);
         $ensure(28 + count($noteLines) * 12);
-        $text($margin, $y, 8, 'NOTES', true);
+        $text($margin, $y, 8, 'NOTES', true, 0.45);
         $y -= 14;
         foreach ($noteLines as $row) {
             $ensure(14);
             $text($margin, $y, 9, $row);
             $y -= 12;
         }
-        $y -= 8;
+        $y -= 10;
     }
     if (!empty($invoice['terms'])) {
         $termLines = si_pdf_wrap($invoice['terms'], 9, $contentW);
         $ensure(28 + count($termLines) * 12);
-        $text($margin, $y, 8, 'TERMS AND CONDITIONS', true);
+        $text($margin, $y, 8, 'TERMS AND CONDITIONS', true, 0.45);
         $y -= 14;
         foreach ($termLines as $row) {
             $ensure(14);
-            $text($margin, $y, 9, $row);
+            $text($margin, $y, 9, $row, false, 0.35);
             $y -= 12;
         }
-        $y -= 8;
+        $y -= 10;
     }
     $ensure(20);
     $text($margin, $y, 10, 'Thank you for your business.', true);
 
-    $font1 = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>";
-    $font2 = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>";
+    if ($footer) {
+        $y -= 28;
+        $ensure(18);
+        $line($margin, $y + 10, $right, $y + 10, 0.4);
+        $x = $margin;
+        foreach ($footer as $row) {
+            $chunk = $row;
+            $w = si_pdf_text_width($chunk, 8) + 16;
+            if ($x + $w > $right && $x > $margin) {
+                $y -= 12;
+                $ensure(14);
+                $x = $margin;
+            }
+            $text($x, $y, 8, $chunk, false, 0.45);
+            $x += $w;
+        }
+    }
+
+    $font1 = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+    $font2 = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
     $objs = array();
     $objs[] = '<< /Type /Catalog /Pages 2 0 R >>';
     $pageIds = array();
     $contentIds = array();
     $nextId = 5;
+    $imageId = 0;
+    if ($logo) {
+        $imageId = $nextId;
+        $nextId++;
+    }
     foreach ($pages as $content) {
         $pageIds[] = $nextId;
         $contentIds[] = $nextId + 1;
@@ -276,12 +516,23 @@ function si_build_invoice_pdf($invoice, $items, $balance)
     $objs[] = '<< /Type /Pages /Kids [' . trim($kids) . '] /Count ' . count($pageIds) . ' >>';
     $objs[] = $font1;
     $objs[] = $font2;
+    if ($logo) {
+        $filter = !empty($logo['filter']) ? $logo['filter'] : 'DCTDecode';
+        $objs[$imageId - 1] = '<< /Type /XObject /Subtype /Image /Width ' . (int) $logo['width']
+            . ' /Height ' . (int) $logo['height']
+            . ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /' . $filter
+            . ' /Length ' . strlen($logo['data']) . " >>\nstream\n"
+            . $logo['data']
+            . "\nendstream";
+    }
+    $xobject = $imageId ? ' /XObject << /Im1 ' . $imageId . ' 0 R >>' : '';
     foreach ($pages as $i => $content) {
-        $stream = "0 g\n0.2 G\n" . $content;
+        $stream = "0 g\n0.45 G\n" . $content;
         $objs[$pageIds[$i] - 1] = sprintf(
-            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents %d 0 R >>',
+            '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2f %.2f] /Resources << /Font << /F1 3 0 R /F2 4 0 R >>%s >> /Contents %d 0 R >>',
             $pageW,
             $pageH,
+            $xobject,
             $contentIds[$i]
         );
         $objs[$contentIds[$i] - 1] = '<< /Length ' . strlen($stream) . " >>\nstream\n" . $stream . "\nendstream";

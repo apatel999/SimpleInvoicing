@@ -2,6 +2,7 @@
 
 $pageTitle = 'Email templates';
 $currentPage = 'email_templates';
+upgrade_stock_email_templates();
 $id = (int) query('id');
 
 $tplList = db()->prepare('SELECT id, slug, name, subject, is_active, updated_at FROM email_templates WHERE tenant_id = ? ORDER BY name');

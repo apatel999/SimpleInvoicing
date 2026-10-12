@@ -209,31 +209,59 @@ function invoice_template_vars($invoice, $paymentAmount = '')
     return $vars;
 }
 
+function linkify_plain_url($html, $url)
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return $html;
+    }
+    $safe = e($url);
+    if ($safe === '' || strpos($html, $safe) === false) {
+        return $html;
+    }
+    if (preg_match('/href\s*=\s*["\']' . preg_quote($safe, '/') . '/i', $html)) {
+        return $html;
+    }
+    $link = '<a href="' . $safe . '" style="color:#5851ea;text-decoration:underline;word-break:break-all">' . $safe . '</a>';
+    return str_replace($safe, $link, $html);
+}
+
 function invoice_email_body($templateBody, $vars, $invoice, $items = null)
 {
     $intro = apply_template($templateBody, $vars);
+    $intro = linkify_plain_url($intro, invoice_public_url($invoice['id']));
     $invoiceHtml = render_invoice_email_html($invoice, $items);
     if (strpos($templateBody, '{{invoice_html}}') !== false) {
         $intro = str_replace('{{invoice_html}}', $invoiceHtml, $intro);
         $invoiceHtml = '';
     }
-    return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f6f7fb">'
-        . '<tr><td align="center" style="padding:24px 10px">'
+    $font = invoice_ui_font();
+    $inner = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#f6f7fb">'
+        . '<tr><td align="center" style="padding:24px 10px;font-family:' . $font . '">'
         . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"'
         . ' style="border-collapse:collapse;width:100%;max-width:700px;text-align:left;'
-        . 'font-family:Inter,Segoe UI,Arial,sans-serif;color:#111827;font-size:15px;line-height:1.5">'
-        . '<tr><td>'
+        . 'font-family:' . $font . ';color:#111827;font-size:15px;line-height:1.5">'
+        . '<tr><td style="font-family:' . $font . '">'
         . render_email_brand_header()
         . $intro
         . $invoiceHtml
         . '</td></tr></table>'
         . '</td></tr></table>';
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+        . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        . '<link rel="preconnect" href="https://fonts.googleapis.com">'
+        . '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        . '<link href="' . e(invoice_ui_font_href()) . '" rel="stylesheet">'
+        . '<style type="text/css">body,table,td,th,div,p,a,span{font-family:' . $font . ';}</style>'
+        . '</head><body style="margin:0;padding:0;background:#f6f7fb;font-family:' . $font . ';color:#111827;font-size:15px;line-height:1.5">'
+        . $inner
+        . '</body></html>';
 }
 
 function render_email_brand_header()
 {
     $company = setting('company_name', 'My Company');
-    $logoSrc = company_logo_file() !== '' ? 'cid:company-logo' : '';
+    $logoSrc = company_logo_email_src();
     ob_start();
     ?>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin:0 0 8px">
@@ -242,8 +270,7 @@ function render_email_brand_header()
       <?php if ($logoSrc !== ''): ?>
         <img src="<?php echo e($logoSrc); ?>" alt="<?php echo e($company); ?>" width="180" style="display:block;margin:0 auto 10px;max-width:180px;height:auto;border:0">
       <?php endif; ?>
-      <div style="font-size:20px;font-weight:700;letter-spacing:0.01em;color:#111827"><?php echo e($company); ?></div>
-      <div style="margin-top:18px;font-size:22px;font-weight:700;color:#111827;line-height:1.3">Your invoice from <?php echo e($company); ?></div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em;color:#111827"><?php echo e($company); ?></div>
     </td>
   </tr>
 </table>
@@ -383,36 +410,42 @@ function render_invoice_email_html($invoice, $items = null)
     $discount = (float) $invoice['discount_amount'];
     $tax = (float) $invoice['tax_amount'];
     $paid = (float) $invoice['amount_paid'];
-    $label = 'padding:3px 0;color:#6b7280';
-    $value = 'padding:3px 0 3px 14px;text-align:right;font-weight:600';
-    $cell = 'padding:11px 8px 11px 0;border-bottom:1px solid #e5e7eb;color:#111827';
-    $numCell = 'padding:11px 0 11px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right';
+    $font = invoice_ui_font();
+    $logoSrc = company_logo_email_src();
+    $label = 'padding:3px 0;color:#6b7280;font-size:14px;font-family:' . $font . ';white-space:nowrap';
+    $value = 'padding:3px 0 3px 14px;text-align:right;font-weight:600;font-size:14px;font-family:' . $font;
+    $cell = 'padding:11px 8px 11px 0;border-bottom:1px solid #e5e7eb;color:#111827;font-family:' . $font;
+    $numCell = 'padding:11px 0 11px 12px;border-bottom:1px solid #e5e7eb;white-space:nowrap;text-align:right;font-family:' . $font;
     $head = 'padding:11px 8px;background:#f1f2f5;color:#111827;font-size:12px;'
-        . 'text-transform:uppercase;letter-spacing:0.05em;font-weight:700';
+        . 'text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-family:' . $font;
 
     ob_start();
     ?>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0 0;width:100%;border-collapse:collapse">
   <tr>
-    <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:24px">
+    <td style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:24px;font-family:<?php echo invoice_ui_font(); ?>">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%">
         <tr>
-          <td valign="top" width="50%" style="width:50%;padding:0 16px 26px 0;font-size:14px;color:#111827">
-            <div style="font-size:18px;font-weight:700;line-height:1.3"><?php echo e($company); ?></div>
+          <td valign="top" width="50%" style="width:50%;padding:0 16px 26px 0;font-size:14px;color:#111827;font-family:<?php echo $font; ?>">
+            <?php if ($logoSrc !== ''): ?>
+              <img src="<?php echo e($logoSrc); ?>" alt="<?php echo e($company); ?>" width="136"
+                   style="display:block;margin:0 0 9px;max-width:136px;max-height:44px;width:auto;height:auto;border:0">
+            <?php endif; ?>
+            <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.3;font-family:<?php echo $font; ?>"><?php echo e($company); ?></div>
           </td>
-          <td valign="top" align="right" width="50%" style="width:50%;padding:0 0 26px 16px;text-align:right">
-            <div style="font-size:30px;font-weight:800;letter-spacing:0.06em;color:#111827;line-height:1">INVOICE</div>
-            <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12px 0 0 auto;font-size:13px">
+          <td valign="top" align="right" width="50%" style="width:50%;padding:0 0 26px 16px;text-align:right;font-family:<?php echo $font; ?>">
+            <div style="font-size:25px;font-weight:800;letter-spacing:0.06em;color:#111827;line-height:1;font-family:<?php echo $font; ?>">INVOICE</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12px 0 0 auto;font-size:14px;font-family:<?php echo $font; ?>">
               <tr>
-                <td style="<?php echo $label; ?>">Invoice No</td>
+                <td style="<?php echo $label; ?>">Invoice&nbsp;No</td>
                 <td style="<?php echo $value; ?>"><?php echo e($invoice['invoice_number']); ?></td>
               </tr>
               <tr>
-                <td style="<?php echo $label; ?>">Invoice date</td>
+                <td style="<?php echo $label; ?>">Invoice&nbsp;date</td>
                 <td style="<?php echo $value; ?>"><?php echo e(format_date($invoice['issue_date'])); ?></td>
               </tr>
               <tr>
-                <td style="<?php echo $label; ?>">Due date</td>
+                <td style="<?php echo $label; ?>">Due&nbsp;date</td>
                 <td style="<?php echo $value; ?>"><?php echo e(format_date($invoice['due_date'])); ?></td>
               </tr>
             </table>
@@ -423,8 +456,8 @@ function render_invoice_email_html($invoice, $items = null)
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;margin-bottom:10px">
         <tr>
           <td valign="top" width="58%" style="width:58%;padding:0 16px 20px 0;font-size:14px;color:#111827">
-            <div style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;margin-bottom:5px">Invoice to</div>
-            <div style="font-size:16px;font-weight:700"><?php echo e($invoice['customer_name']); ?></div>
+            <div style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.07em;font-weight:650;margin-bottom:5px;font-family:<?php echo $font; ?>">Invoice&nbsp;to</div>
+            <div style="font-size:17px;font-weight:700;font-family:<?php echo $font; ?>"><?php echo e($invoice['customer_name']); ?></div>
             <?php if (!empty($invoice['customer_company'])): ?>
               <div><?php echo e($invoice['customer_company']); ?></div>
             <?php endif; ?>
@@ -433,8 +466,8 @@ function render_invoice_email_html($invoice, $items = null)
             <?php endif; ?>
           </td>
           <td valign="top" align="right" width="42%" style="width:42%;padding:0 0 20px 16px;font-size:14px;color:#111827;text-align:right">
-            <div style="color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:0.07em;font-weight:700;margin-bottom:5px">Balance due</div>
-            <div style="font-size:22px;font-weight:800"><?php echo e(money($balance)); ?></div>
+            <div style="color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.07em;font-weight:650;margin-bottom:5px;font-family:<?php echo $font; ?>">Balance&nbsp;due</div>
+            <div style="font-size:24px;font-weight:800;letter-spacing:-0.01em;font-family:<?php echo $font; ?>"><?php echo e(money($balance)); ?></div>
           </td>
         </tr>
       </table>

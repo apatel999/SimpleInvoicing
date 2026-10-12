@@ -288,10 +288,8 @@
 
   function phoneDigits(value) {
     var digits = String(value || '').replace(/\D/g, '');
-    if (digits.length === 11 && digits.charAt(0) === '1') {
-      digits = digits.slice(1);
-    }
-    return digits.slice(0, 10);
+    var max = digits.charAt(0) === '1' ? 11 : 10;
+    return digits.slice(0, max);
   }
 
   function formatPhone(value) {
@@ -299,6 +297,22 @@
     var len = digits.length;
     if (!len) {
       return '';
+    }
+    if (digits.charAt(0) === '1') {
+      var out = '1';
+      var rest = digits.slice(1);
+      if (!rest) {
+        return out;
+      }
+      out += '-' + rest.slice(0, 3);
+      if (rest.length <= 3) {
+        return out;
+      }
+      out += '-' + rest.slice(3, 6);
+      if (rest.length <= 6) {
+        return out;
+      }
+      return out + '-' + rest.slice(6, 10);
     }
     if (len < 4) {
       return '(' + digits;

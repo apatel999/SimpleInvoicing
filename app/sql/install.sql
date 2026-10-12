@@ -234,43 +234,54 @@ INSERT INTO `email_templates` (`slug`, `name`, `subject`, `body`, `is_active`) V
   'invoice_sent',
   'Invoice sent',
   'Invoice {{invoice_number}} from {{company_name}}',
-  '<p>Hello {{customer_name}},</p>
-<p>Please find invoice <strong>{{invoice_number}}</strong> dated {{issue_date}}.</p>
-<p>Amount due: <strong>{{invoice_total}}</strong><br>
+  '<p>Dear {{customer_name}},</p>
+<p>Please find invoice <strong>{{invoice_number}}</strong> for your records. A copy is included below.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Invoice date: {{issue_date}}<br>
+Amount due: <strong style="color:#111827">{{invoice_total}}</strong><br>
 Due date: {{due_date}}</p>
-<p>You can view the invoice here: {{invoice_link}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+<p style="margin:28px 0 8px"><a href="{{invoice_link}}" style="display:inline-block;background:#5851ea;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;line-height:1;padding:12px 22px;border-radius:6px">View invoice</a></p>
+<p style="margin:0 0 22px;font-size:13px;color:#6b7280">Or open this link: {{invoice_link}}</p>
+<p style="margin:28px 0 0">If you have questions about this invoice, reply to this email and we will be glad to help.</p>
+<p style="margin:22px 0 0">Kind regards,<br>{{company_name}}</p>',
   1
 ),
 (
   'payment_received',
   'Payment received',
   'Payment received for invoice {{invoice_number}}',
-  '<p>Hello {{customer_name}},</p>
-<p>We have received a payment of <strong>{{payment_amount}}</strong> for invoice <strong>{{invoice_number}}</strong>.</p>
-<p>Remaining balance: {{balance_due}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+  '<p>Dear {{customer_name}},</p>
+<p>Thank you. We have received your payment of <strong>{{payment_amount}}</strong> toward invoice <strong>{{invoice_number}}</strong>.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Remaining balance: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>A receipt summary is included below.</p>
+<p style="margin:28px 0 0">If you have questions about this invoice, reply to this email and we will be glad to help.</p>
+<p style="margin:22px 0 0">Kind regards,<br>{{company_name}}</p>',
   1
 ),
 (
   'invoice_reminder',
   'Invoice reminder',
-  'Reminder: invoice {{invoice_number}} is due on {{due_date}}',
-  '<p>Hello {{customer_name}},</p>
-<p>This is a friendly reminder that invoice <strong>{{invoice_number}}</strong> is due on {{due_date}}.</p>
-<p>Amount due: <strong>{{balance_due}}</strong></p>
-<p>View invoice: {{invoice_link}}</p>
-<p>Thank you,<br>{{company_name}}</p>',
+  'Reminder: invoice {{invoice_number}} is due {{due_date}}',
+  '<p>Dear {{customer_name}},</p>
+<p>This is a courtesy reminder that invoice <strong>{{invoice_number}}</strong> is due on <strong>{{due_date}}</strong>.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Amount due: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>Please arrange payment by the due date. You can review the invoice using the button below.</p>
+<p style="margin:28px 0 8px"><a href="{{invoice_link}}" style="display:inline-block;background:#5851ea;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;line-height:1;padding:12px 22px;border-radius:6px">View invoice</a></p>
+<p style="margin:0 0 22px;font-size:13px;color:#6b7280">Or open this link: {{invoice_link}}</p>
+<p style="margin:28px 0 0">If you have questions about this invoice, reply to this email and we will be glad to help.</p>
+<p style="margin:22px 0 0">Kind regards,<br>{{company_name}}</p>',
   1
 ),
 (
   'invoice_overdue',
   'Overdue invoice',
-  'Overdue: invoice {{invoice_number}}',
-  '<p>Hello {{customer_name}},</p>
-<p>Invoice <strong>{{invoice_number}}</strong> is now overdue. The original due date was {{due_date}}.</p>
-<p>Outstanding balance: <strong>{{balance_due}}</strong></p>
-<p>Please arrange payment at your earliest convenience.</p>
-<p>{{company_name}}</p>',
+  'Invoice {{invoice_number}} is now overdue',
+  '<p>Dear {{customer_name}},</p>
+<p>Invoice <strong>{{invoice_number}}</strong> is now past due. The original due date was {{due_date}}.</p>
+<p style="margin:18px 0 6px;color:#6b7280;font-size:13px">Outstanding balance: <strong style="color:#111827">{{balance_due}}</strong></p>
+<p>Please arrange payment at your earliest convenience. If payment has already been sent, you may disregard this notice.</p>
+<p style="margin:28px 0 8px"><a href="{{invoice_link}}" style="display:inline-block;background:#5851ea;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;line-height:1;padding:12px 22px;border-radius:6px">View invoice</a></p>
+<p style="margin:0 0 22px;font-size:13px;color:#6b7280">Or open this link: {{invoice_link}}</p>
+<p style="margin:28px 0 0">If you have questions about this invoice, reply to this email and we will be glad to help.</p>
+<p style="margin:22px 0 0">Kind regards,<br>{{company_name}}</p>',
   1
 );

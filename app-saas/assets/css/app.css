@@ -37,7 +37,9 @@ h1, h2, h3 { font-weight: 650; margin: 0; }
   display: grid;
   grid-template-columns: 240px 1fr;
   grid-template-rows: 56px 1fr;
+  transition: grid-template-columns 0.2s ease;
 }
+.nav-collapsed .app { grid-template-columns: 4.5rem 1fr; }
 
 .app-header {
   grid-column: 1 / -1;
@@ -101,11 +103,20 @@ h1, h2, h3 { font-weight: 650; margin: 0; }
   color: var(--ink);
   display: flex;
   flex-direction: column;
+  align-self: stretch;
+  min-height: 0;
   padding: 0.85rem 0 1rem;
   border-right: 1px solid var(--line);
 }
-.nav { display: flex; flex-direction: column; gap: 0.85rem; flex: 1; }
+.nav { display: flex; flex-direction: column; gap: 0.85rem; }
 .nav-group { display: flex; flex-direction: column; }
+.nav-end {
+  display: flex;
+  flex-direction: column;
+  margin-top: auto;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
 .nav-link {
   position: relative;
   display: flex;
@@ -136,6 +147,42 @@ h1, h2, h3 { font-weight: 650; margin: 0; }
   border-radius: 0 3px 3px 0;
   background: var(--accent);
 }
+.sidebar-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.55rem 0.65rem 0;
+  padding: 0.38rem 0.5rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: pointer;
+  width: calc(100% - 1.3rem);
+}
+.sidebar-collapse svg { width: 1.1rem; height: 1.1rem; display: block; }
+.sidebar-collapse:hover { background: #e5e7eb; color: #6b7280; }
+.nav-collapsed .nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.nav-collapsed .nav-link {
+  justify-content: center;
+  padding: 0.62rem 0.45rem;
+}
+.nav-collapsed .sidebar-collapse {
+  width: calc(100% - 0.8rem);
+  margin: 0.55rem 0.4rem 0;
+  padding: 0.38rem 0.35rem;
+}
+.nav-collapsed .sidebar-collapse svg { transform: rotate(180deg); }
 
 .main { min-width: 0; background: var(--bg); }
 .topbar {
@@ -516,7 +563,7 @@ table.data.invoice-items th {
   padding: 0.85rem 0.7rem; border-bottom: 0;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
-table.data.invoice-items td { padding: 0.9rem 0.7rem; }
+table.data.invoice-items td { padding: 0.9rem 0.7rem; vertical-align: middle; }
 table.data.invoice-items tr:hover td { background: transparent; }
 .invoice-bottom {
   display: flex; flex-direction: column; gap: 1.6rem; margin-top: 1.6rem;
@@ -575,6 +622,21 @@ table.data.invoice-items tr:hover td { background: transparent; }
     min-width: 0;
   }
   .menu-toggle { display: grid; }
+  .sidebar-collapse { display: none; }
+  .nav-collapsed .app { grid-template-columns: none; }
+  .nav-collapsed .nav-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+  .nav-collapsed .nav-link {
+    justify-content: flex-start;
+    padding: 0.62rem 1.15rem;
+  }
   .header-brand { min-width: 0; flex: 1; }
   .header-search { display: none; }
   .header-logout { display: none; }
@@ -614,7 +676,7 @@ table.data.invoice-items tr:hover td { background: transparent; }
   .nav { flex-direction: column; flex-wrap: nowrap; }
   .sidebar-logout {
     display: block;
-    margin: auto 1.15rem 0.5rem;
+    margin: 0.15rem 1.15rem 0.5rem;
     padding: 0.7rem 0.2rem;
     color: var(--accent);
     font-weight: 650;
@@ -819,8 +881,32 @@ table.data.invoice-items tr:hover td { background: transparent; }
   --inv-border: #e6e8ee;
   --inv-muted: #8b90a0;
   --inv-text: #222636;
+  max-width: 52rem;
   color: var(--inv-text);
 }
+.invoice-builder .invoice-paper { margin-bottom: 1rem; }
+.invoice-builder .invoice-meta label {
+  display: inline; margin: 0; color: inherit; font-size: inherit;
+}
+.invoice-builder .invoice-meta input[type="date"] {
+  width: auto; min-width: 10.2rem; text-align: right; font-weight: 600;
+  padding: 0.2rem 0.35rem;
+}
+.invoice-builder .invoice-items .inv-col-qty { width: 5.5rem; }
+.invoice-builder .invoice-items .inv-col-price { width: 8.5rem; }
+.invoice-builder .invoice-items .inv-col-amt { width: 7rem; }
+.invoice-builder .invoice-items .inv-col-remove { width: 2.2rem; padding: 0.45rem 0.3rem; }
+.invoice-builder .invoice-items input[type="text"],
+.invoice-builder .invoice-items input[type="number"] {
+  padding: 0.35rem 0.45rem;
+}
+.invoice-builder .totals input,
+.invoice-builder .totals select {
+  width: 4.6rem; padding: 0.22rem 0.3rem;
+}
+.invoice-builder .invoice-terms textarea { min-height: 4.2rem; margin: 0 0 0.9rem; }
+.invoice-builder .internal-note-card { margin-bottom: 0.25rem; }
+.invoice-builder .internal-note-card textarea { min-height: 5rem; }
 .invoice-builder .req { color: #e11d48; font-weight: 700; }
 .inv-card {
   background: #fff;
@@ -844,12 +930,10 @@ table.data.invoice-items tr:hover td { background: transparent; }
 .inv-customer {
   position: relative;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
+  min-width: 0;
 }
 .inv-customer-bar {
-  padding: 0.7rem 0.8rem 0.45rem;
+  padding: 0 0 0.55rem;
 }
 .inv-customer-search-label {
   margin-bottom: 0.3rem;
@@ -871,6 +955,7 @@ table.data.invoice-items tr:hover td { background: transparent; }
   flex-shrink: 0;
   white-space: nowrap;
   align-self: stretch;
+  padding: 0.4rem 0.7rem;
 }
 .inv-picker {
   position: absolute; left: 0; right: 0; top: calc(100% + 0.3rem); z-index: 8;
@@ -891,9 +976,7 @@ table.data.invoice-items tr:hover td { background: transparent; }
 .inv-picker-item small { color: var(--inv-muted); }
 .inv-picker-empty { color: var(--inv-muted); padding: 0.6rem; margin: 0; }
 .inv-new-customer {
-  padding: 0 0.8rem 0.7rem;
-  flex: 1;
-  display: flex;
+  padding: 0.35rem 0 0;
 }
 .inv-new-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem 0.7rem;
@@ -1025,6 +1108,12 @@ table.data.invoice-items tr:hover td { background: transparent; }
 
 @media screen and (max-width: 960px) {
   .inv-top, .inv-new-grid { grid-template-columns: 1fr; }
+  .invoice-builder .invoice-head,
+  .invoice-builder .invoice-parties { display: block; }
+  .invoice-builder .invoice-title { text-align: left; margin-top: 1.2rem; }
+  .invoice-builder .invoice-meta { justify-items: start; }
+  .invoice-builder .invoice-due { text-align: left; margin-top: 1.2rem; }
+  .invoice-builder .invoice-meta input[type="date"] { min-width: 0; width: 100%; text-align: left; }
   .inv-items-card { overflow: visible; padding: 0.55rem 0.6rem 0.75rem; }
   .inv-items, .inv-items thead, .inv-items tbody {
     display: block;
