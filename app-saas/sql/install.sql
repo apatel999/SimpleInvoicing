@@ -1,8 +1,8 @@
 -- =============================================================================
--- InvoiceHost — multi-tenant invoicing (copy of SimpleInvoicing)
+-- InvoiceHost — multi-tenant invoicing
 -- One hosted app. You create tenants and assign subscriptions.
 --
--- Import this file into a NEW database (do not use the original app database).
+-- Import this file into a new MySQL database.
 --
 -- Platform login:
 --   Email:    platform@example.com

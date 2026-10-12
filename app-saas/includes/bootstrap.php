@@ -50,7 +50,7 @@ function render_setup_page($message)
     echo '.box{max-width:36rem;margin:0 auto;background:#fffdf8;border:1px solid #e4ddd0;padding:2rem}';
     echo 'code{background:#f3efe6;padding:.1rem .3rem}</style></head><body><div class="box">';
     echo '<h1>InvoiceHost setup</h1><p>' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</p>';
-    echo '<ol><li>Create a new MySQL database (do not reuse the original <code>app</code> database).</li>';
+    echo '<ol><li>Create a MySQL database for InvoiceHost.</li>';
     echo '<li>Edit <code>config.php</code>, then import <code>sql/install.sql</code> in phpMyAdmin.</li>';
     echo '<li>Platform: <code>platform@example.com</code> / <code>admin123</code>. Demo tenant: <code>admin@example.com</code> / <code>admin123</code>.</li></ol>';
     echo '</div></body></html>';

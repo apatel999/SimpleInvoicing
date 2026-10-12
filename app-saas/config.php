@@ -1,6 +1,6 @@
 <?php
 /**
- * InvoiceHost (multi-tenant) configuration. Use a separate database from the original app.
+ * InvoiceHost (multi-tenant) configuration.
  *
  * Docker: leave these defaults; docker-compose injects DB_* and APP_* from .env.
  * Hosting: change the second argument of each si_env() call, then import sql/install.sql.

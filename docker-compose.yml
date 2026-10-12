@@ -1,25 +1,4 @@
 services:
-  web:
-    build:
-      context: ./docker/php
-    container_name: simpleinvoicing-web
-    ports:
-      - "${APP_PORT:-8080}:80"
-    volumes:
-      - ./app:/var/www/html
-    environment:
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASS: ${MYSQL_PASSWORD}
-      APP_URL: ${APP_URL:-http://localhost:8080}
-      APP_SECRET: ${APP_SECRET}
-      SI_DEBUG: ${SI_DEBUG:-1}
-    depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
-
   web-saas:
     build:
       context: ./docker/php
@@ -48,14 +27,12 @@ services:
       - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
       - ./data/mysql:/var/lib/mysql
-      - ./app/sql/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
-      - ./docker/mysql/02-saas-db.sh:/docker-entrypoint-initdb.d/02-saas-db.sh:ro
+      - ./app-saas/sql/install.sql:/docker-entrypoint-initdb.d/01-install.sql:ro
     environment:
-      MARIADB_DATABASE: ${MYSQL_DATABASE}
+      MARIADB_DATABASE: ${SAAS_DATABASE:-invoicehost}
       MARIADB_USER: ${MYSQL_USER}
       MARIADB_PASSWORD: ${MYSQL_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      SAAS_DATABASE: ${SAAS_DATABASE:-invoicehost}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
