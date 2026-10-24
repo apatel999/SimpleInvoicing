@@ -185,24 +185,28 @@
     });
   }
 
-  var panel = document.getElementById('customer-panel');
+  var customerModal = document.getElementById('customer-modal');
   var search = document.getElementById('customer-search');
   var customerId = document.getElementById('customer_id');
   var customerMode = document.getElementById('customer_mode');
-  var newFields = document.getElementById('new-customer-fields');
   var selectedFields = document.getElementById('selected-customer-fields');
+  var customerEmpty = document.getElementById('customer-empty');
   var chooseNew = document.getElementById('choose-new-customer');
   var viewName = document.getElementById('view-customer-name');
   var viewCompany = document.getElementById('view-customer-company');
   var viewEmail = document.getElementById('view-customer-email');
   var viewPhone = document.getElementById('view-customer-phone');
-
-  function showNewCustomerFields() {
-    if (customerMode) customerMode.value = 'new';
-    if (customerId) customerId.value = '';
-    if (selectedFields) selectedFields.hidden = true;
-    if (newFields) newFields.hidden = false;
-  }
+  var searchView = document.getElementById('customer-modal-search-view');
+  var formView = document.getElementById('customer-modal-form-view');
+  var modalTitle = document.getElementById('customer-modal-title');
+  var addFromSearch = document.getElementById('customer-add-from-search');
+  var formError = document.getElementById('customer-form-error');
+  var nameField = document.getElementById('new_name');
+  var companyField = document.getElementById('new_company');
+  var emailField = document.getElementById('new_email');
+  var phoneField = document.getElementById('new_phone');
+  var modalSnapshot = { id: '', mode: 'existing' };
+  var keepCustomerChoice = false;
 
   function fillPartyLine(el, value) {
     if (!el) return;
@@ -216,18 +220,74 @@
     fillPartyLine(viewCompany, company);
     fillPartyLine(viewEmail, email);
     fillPartyLine(viewPhone, typeof formatPhone === 'function' ? formatPhone(phone) : phone);
-    if (customerMode) customerMode.value = 'existing';
     if (selectedFields) selectedFields.hidden = false;
-    if (newFields) newFields.hidden = true;
+    if (customerEmpty) customerEmpty.hidden = true;
   }
 
-  function closePicker() {
-    if (panel) panel.hidden = true;
+  function fieldValue(el) {
+    return el ? String(el.value || '').trim() : '';
+  }
+
+  function setFormFields(name, company, email, phone) {
+    if (nameField) nameField.value = name || '';
+    if (companyField) companyField.value = company || '';
+    if (emailField) emailField.value = email || '';
+    if (phoneField) phoneField.value = typeof formatPhone === 'function' ? formatPhone(phone || '') : (phone || '');
+  }
+
+  function showSearchView() {
+    if (modalTitle) modalTitle.textContent = 'Select customer';
+    if (searchView) searchView.hidden = false;
+    if (formView) formView.hidden = true;
+    filterCustomers();
+    if (search) {
+      search.focus();
+      search.select();
+    }
+  }
+
+  function showFormView(isEdit, presetName) {
+    if (modalTitle) modalTitle.textContent = isEdit ? 'Edit customer' : 'New customer';
+    if (searchView) searchView.hidden = true;
+    if (formView) formView.hidden = false;
+    var apply = document.getElementById('customer-form-apply');
+    if (apply) apply.textContent = isEdit ? 'Update' : 'Use customer';
+    if (formError) formError.hidden = true;
+    if (presetName && nameField && !nameField.value) nameField.value = presetName;
+    if (nameField) nameField.focus();
+  }
+
+  function openCustomerModal(view) {
+    if (!customerModal) return;
+    modalSnapshot.id = customerId ? customerId.value : '';
+    modalSnapshot.mode = customerMode ? customerMode.value : 'existing';
+    keepCustomerChoice = false;
+    customerModal.hidden = false;
+    document.body.classList.add('modal-open');
+    if (view === 'form') {
+      var hasId = customerId && customerId.value && customerId.value !== '0';
+      showFormView(!!hasId);
+    } else {
+      if (search) search.value = '';
+      showSearchView();
+    }
+  }
+
+  function closeCustomerModal() {
+    if (!keepCustomerChoice) {
+      if (customerId) customerId.value = modalSnapshot.id;
+      if (customerMode) customerMode.value = modalSnapshot.mode;
+    }
+    keepCustomerChoice = false;
+    if (customerModal) customerModal.hidden = true;
+    if (!document.getElementById('confirm-modal') || document.getElementById('confirm-modal').hidden) {
+      document.body.classList.remove('modal-open');
+    }
   }
 
   function filterCustomers() {
-    var q = search ? search.value.toLowerCase() : '';
-    var items = document.querySelectorAll('.inv-picker-item');
+    var q = search ? search.value.toLowerCase().trim() : '';
+    var items = document.querySelectorAll('#customer-list .inv-picker-item');
     var visible = 0;
     for (var i = 0; i < items.length; i++) {
       var hay = (items[i].getAttribute('data-name') + ' ' + items[i].getAttribute('data-company') + ' ' + items[i].getAttribute('data-email')).toLowerCase();
@@ -235,42 +295,24 @@
       items[i].style.display = show ? '' : 'none';
       if (show) visible++;
     }
+    var empty = document.getElementById('customer-empty-list');
+    if (empty) empty.hidden = visible > 0;
+    if (addFromSearch) {
+      if (q !== '') {
+        addFromSearch.hidden = false;
+        addFromSearch.textContent = 'Add “' + search.value.trim() + '” as a new customer';
+      } else {
+        addFromSearch.hidden = true;
+      }
+    }
     return visible;
   }
 
-  function openPicker() {
-    if (!panel) return;
-    filterCustomers();
-    panel.hidden = false;
+  if (search) {
+    search.addEventListener('input', filterCustomers);
   }
 
-  if (search && panel) {
-    search.addEventListener('focus', function () {
-      var items = document.querySelectorAll('.inv-picker-item');
-      for (var i = 0; i < items.length; i++) {
-        items[i].style.display = '';
-      }
-      panel.hidden = false;
-      search.select();
-    });
-    search.addEventListener('input', function () {
-      openPicker();
-    });
-    search.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') {
-        closePicker();
-        search.blur();
-      }
-    });
-    document.addEventListener('click', function (event) {
-      var wrap = document.querySelector('.inv-customer-search-wrap');
-      if (wrap && !wrap.contains(event.target)) {
-        closePicker();
-      }
-    });
-  }
-
-  var pickerItems = document.querySelectorAll('.inv-picker-item');
+  var pickerItems = document.querySelectorAll('#customer-list .inv-picker-item');
   for (var c = 0; c < pickerItems.length; c++) {
     pickerItems[c].addEventListener('click', function () {
       var name = this.getAttribute('data-name') || '';
@@ -278,27 +320,93 @@
       var email = this.getAttribute('data-email') || '';
       var phone = this.getAttribute('data-phone') || '';
       if (customerId) customerId.value = this.getAttribute('data-id');
-      if (search) search.value = name;
+      if (customerMode) customerMode.value = 'existing';
+      setFormFields('', '', '', '');
       fillSelectedCustomer(name, company, email, phone);
-      closePicker();
+      keepCustomerChoice = true;
+      closeCustomerModal();
     });
+  }
+
+  function startNewCustomer(presetName) {
+    if (customerMode) customerMode.value = 'new';
+    if (customerId) customerId.value = '';
+    setFormFields(presetName || '', '', '', '');
+    showFormView(false, presetName || '');
   }
 
   if (chooseNew) {
     chooseNew.addEventListener('click', function () {
-      if (search) search.value = '';
-      showNewCustomerFields();
-      closePicker();
-      var nameField = document.getElementById('new_name');
-      if (nameField) nameField.focus();
+      startNewCustomer(search ? search.value.trim() : '');
+    });
+  }
+  if (addFromSearch) {
+    addFromSearch.addEventListener('click', function () {
+      startNewCustomer(search ? search.value.trim() : '');
     });
   }
 
-  if (customerMode && customerMode.value === 'new') {
-    showNewCustomerFields();
-  } else if (selectedFields && customerId && customerId.value) {
-    selectedFields.hidden = false;
-    if (newFields) newFields.hidden = true;
+  var openSelect = document.getElementById('open-customer-modal');
+  var customerChange = document.getElementById('customer-change');
+  var customerEdit = document.getElementById('customer-edit');
+  if (openSelect) openSelect.addEventListener('click', function () { openCustomerModal('search'); });
+  if (customerChange) customerChange.addEventListener('click', function () { openCustomerModal('search'); });
+  if (customerEdit) {
+    customerEdit.addEventListener('click', function () {
+      setFormFields(
+        viewName ? viewName.textContent : '',
+        viewCompany && !viewCompany.hidden ? viewCompany.textContent : '',
+        viewEmail && !viewEmail.hidden ? viewEmail.textContent : '',
+        viewPhone && !viewPhone.hidden ? viewPhone.textContent : ''
+      );
+      openCustomerModal('form');
+    });
+  }
+
+  var modalCancel = document.getElementById('customer-modal-cancel');
+  var formBack = document.getElementById('customer-form-back');
+  var formApply = document.getElementById('customer-form-apply');
+  if (modalCancel) modalCancel.addEventListener('click', closeCustomerModal);
+  if (formBack) formBack.addEventListener('click', showSearchView);
+  if (formApply) {
+    formApply.addEventListener('click', function () {
+      var name = fieldValue(nameField);
+      if (name === '') {
+        if (formError) {
+          formError.textContent = 'Customer name is required.';
+          formError.hidden = false;
+        }
+        if (nameField) nameField.focus();
+        return;
+      }
+      if (customerId && customerId.value && customerId.value !== '0') {
+        if (customerMode) customerMode.value = 'edit';
+      } else if (customerMode) {
+        customerMode.value = 'new';
+      }
+      fillSelectedCustomer(name, fieldValue(companyField), fieldValue(emailField), fieldValue(phoneField));
+      keepCustomerChoice = true;
+      closeCustomerModal();
+    });
+  }
+  if (customerModal) {
+    customerModal.addEventListener('click', function (event) {
+      if (event.target === customerModal) closeCustomerModal();
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && customerModal && !customerModal.hidden) {
+        closeCustomerModal();
+      }
+      if (event.key === 'Enter' && customerModal && !customerModal.hidden && event.target && event.target.tagName !== 'BUTTON' && event.target.tagName !== 'TEXTAREA') {
+        event.preventDefault();
+        if (formView && !formView.hidden && formApply) {
+          formApply.click();
+        }
+      }
+    });
+    if (customerModal.getAttribute('data-open') === '1') {
+      openCustomerModal(customerModal.getAttribute('data-open-form') === '1' ? 'form' : 'search');
+    }
   }
 
   function phoneDigits(value) {

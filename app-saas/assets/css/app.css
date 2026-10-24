@@ -389,6 +389,29 @@ h1, h2, h3 { font-weight: 650; margin: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
 .modal-actions .btn { min-width: 5.4rem; }
 body.modal-open { overflow: hidden; }
+.customer-modal {
+  width: min(100%, 28rem);
+  max-height: min(90vh, 42rem);
+  overflow: auto;
+}
+.customer-modal h2 { margin-bottom: 0.75rem; }
+.customer-modal p { margin: 0 0 0.65rem; color: inherit; }
+.customer-modal .inv-picker-list {
+  max-height: 14rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  padding: 0.25rem;
+  margin: 0 0 0.65rem;
+}
+.customer-modal .modal-actions { margin-top: 1rem; }
+.customer-modal .inv-new-grid { margin-top: 0.15rem; }
+#customer-add-from-search { display: block; margin: 0 0 0.55rem; }
+.inv-customer-empty { margin-top: 0.15rem; }
+.inv-customer-actions {
+  display: flex;
+  gap: 0.9rem;
+  margin-top: 0.5rem;
+}
 table.data {
   width: 100%; border-collapse: collapse; font-size: 0.95rem;
 }
@@ -906,6 +929,25 @@ table.data.invoice-items tfoot tr.grand td.totals-label { color: var(--ink); }
   .header-brand-text { display: none; }
   .stats { grid-template-columns: 1fr 1fr; }
   .search { flex-wrap: wrap; }
+  .customer-modal-overlay {
+    place-items: end center;
+    padding: 0;
+  }
+  .customer-modal {
+    width: 100%;
+    max-width: none;
+    max-height: min(92vh, 44rem);
+    border-radius: 1rem 1rem 0 0;
+    padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
+  }
+  .customer-modal .modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+  .customer-modal .modal-actions .btn {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 .topbar-compact { padding-bottom: 0.2rem; }

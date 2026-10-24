@@ -42,7 +42,7 @@ if ($id) {
     }
 }
 
-$customerMode = ((int) $invoice['customer_id'] > 0) ? 'existing' : 'new';
+$customerMode = 'existing';
 $newCustomer = array(
     'name' => '',
     'company' => '',
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $invoice['status'] = $found['status'] === 'draft' ? 'draft' : 'sent';
     }
 
-    if ($customerMode === 'new') {
+    if ($customerMode === 'new' || $customerMode === 'edit') {
         $phoneError = null;
         $phone = normalize_phone($newCustomer['phone'], $phoneError);
         $newCustomer['phone'] = $phone;
@@ -111,23 +111,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Customer name is required.';
         } elseif ($phoneError) {
             $error = $phoneError;
-        } else {
+        } elseif ($customerMode === 'new') {
             if (plan_limit_reached('customers')) {
                 $error = 'Customer limit reached for this plan.';
             } else {
-            require_writable_subscription();
-            db()->prepare('INSERT INTO customers (tenant_id, name, company, email, phone, is_active) VALUES (?,?,?,?,?,1)')
-                ->execute(array(tenant_id(), $newCustomer['name'], $newCustomer['company'], $newCustomer['email'], $phone));
-            $invoice['customer_id'] = (int) db()->lastInsertId();
-            $customerMode = 'existing';
-            $customers[] = array(
-                'id' => $invoice['customer_id'],
-                'name' => $newCustomer['name'],
-                'company' => $newCustomer['company'],
-                'email' => $newCustomer['email'],
-                'phone' => $phone,
-            );
+                require_writable_subscription();
+                db()->prepare('INSERT INTO customers (tenant_id, name, company, email, phone, is_active) VALUES (?,?,?,?,?,1)')
+                    ->execute(array(tenant_id(), $newCustomer['name'], $newCustomer['company'], $newCustomer['email'], $phone));
+                $invoice['customer_id'] = (int) db()->lastInsertId();
+                $customerMode = 'existing';
+                $customers[] = array(
+                    'id' => $invoice['customer_id'],
+                    'name' => $newCustomer['name'],
+                    'company' => $newCustomer['company'],
+                    'email' => $newCustomer['email'],
+                    'phone' => $phone,
+                );
             }
+        } elseif ((int) $invoice['customer_id'] <= 0) {
+            $error = 'Choose a customer.';
+        } else {
+            require_writable_subscription();
+            db()->prepare('UPDATE customers SET name = ?, company = ?, email = ?, phone = ? WHERE id = ? AND tenant_id = ?')
+                ->execute(array(
+                    $newCustomer['name'],
+                    $newCustomer['company'],
+                    $newCustomer['email'],
+                    $phone,
+                    (int) $invoice['customer_id'],
+                    tenant_id(),
+                ));
+            $customerMode = 'existing';
         }
     }
 
@@ -176,6 +190,25 @@ foreach ($customers as $customer) {
         break;
     }
 }
+if ($selectedCustomer && ($customerMode === 'edit' || ($customerMode === 'existing' && trim($newCustomer['name']) !== ''))) {
+    $selectedCustomer['name'] = $newCustomer['name'] !== '' ? $newCustomer['name'] : $selectedCustomer['name'];
+    $selectedCustomer['company'] = $newCustomer['company'];
+    $selectedCustomer['email'] = $newCustomer['email'];
+    $selectedCustomer['phone'] = $newCustomer['phone'] !== '' ? $newCustomer['phone'] : $selectedCustomer['phone'];
+}
+$hasParty = ($customerMode === 'existing' && $selectedCustomer)
+    || (($customerMode === 'new' || $customerMode === 'edit') && trim($newCustomer['name']) !== '');
+$openCustomerModal = ($error !== '' && ($customerMode === 'new' || $customerMode === 'edit' || (int) $invoice['customer_id'] <= 0));
+$openCustomerForm = ($error !== '' && ($customerMode === 'new' || $customerMode === 'edit'));
+$party = $selectedCustomer ? $selectedCustomer : array('name' => '', 'company' => '', 'email' => '', 'phone' => '');
+if ($customerMode === 'new' || $customerMode === 'edit') {
+    $party = array(
+        'name' => $newCustomer['name'],
+        'company' => $newCustomer['company'],
+        'email' => $newCustomer['email'],
+        'phone' => $newCustomer['phone'],
+    );
+}
 $showTax = (float) $invoice['tax_rate'] > 0;
 $displayNumber = $id ? $invoice['invoice_number'] : peek_invoice_number();
 $companyName = setting('company_name', 'My Company');
@@ -223,60 +256,17 @@ $companyFooter = array_merge($companyBlocks['contact'], $companyBlocks['address'
         <div class="invoice-parties">
             <div class="inv-customer" id="customer-card">
                 <div class="invoice-label">Invoice to <span class="req">*</span></div>
-                <div class="inv-customer-bar">
-                    <div class="inv-customer-tools">
-                        <div class="inv-customer-search-wrap">
-                            <input type="search" id="customer-search" class="inv-search" placeholder="Search customers" autocomplete="off" value="<?php echo $selectedCustomer && $customerMode !== 'new' ? e($selectedCustomer['name']) : ''; ?>">
-                            <div class="inv-picker" id="customer-panel" hidden>
-                                <div class="inv-picker-list" id="customer-list">
-                                    <?php foreach ($customers as $customer): ?>
-                                        <button type="button" class="inv-picker-item"
-                                                data-id="<?php echo (int) $customer['id']; ?>"
-                                                data-name="<?php echo e($customer['name']); ?>"
-                                                data-company="<?php echo e($customer['company']); ?>"
-                                                data-email="<?php echo e($customer['email']); ?>"
-                                                data-phone="<?php echo e($customer['phone']); ?>">
-                                            <strong><?php echo e($customer['name']); ?></strong>
-                                            <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
-                                        </button>
-                                    <?php endforeach; ?>
-                                    <?php if (!$customers): ?>
-                                        <p class="inv-picker-empty">No customers yet.</p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-ghost inv-new-btn" id="choose-new-customer">+ New customer</button>
-                    </div>
+                <div id="customer-empty" class="inv-customer-empty"<?php echo $hasParty ? ' hidden' : ''; ?>>
+                    <button type="button" class="btn" id="open-customer-modal">Select customer</button>
                 </div>
-
-                <div id="selected-customer-fields"<?php echo ($customerMode === 'existing' && $selectedCustomer) ? '' : ' hidden'; ?>>
-                    <div class="invoice-party-name" id="view-customer-name"><?php echo e($selectedCustomer ? $selectedCustomer['name'] : ''); ?></div>
-                    <div id="view-customer-company"<?php echo ($selectedCustomer && trim($selectedCustomer['company']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? $selectedCustomer['company'] : ''); ?></div>
-                    <div class="muted" id="view-customer-email"<?php echo ($selectedCustomer && trim($selectedCustomer['email']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? $selectedCustomer['email'] : ''); ?></div>
-                    <div class="muted" id="view-customer-phone"<?php echo ($selectedCustomer && trim((string) $selectedCustomer['phone']) !== '') ? '' : ' hidden'; ?>><?php echo e($selectedCustomer ? format_phone($selectedCustomer['phone']) : ''); ?></div>
-                </div>
-
-                <div class="inv-new-customer" id="new-customer-fields"<?php echo $customerMode === 'new' ? '' : ' hidden'; ?>>
-                    <div class="inv-new-grid">
-                        <p>
-                            <label for="new_name">Name <span class="req">*</span></label>
-                            <input id="new_name" type="text" name="new_name" value="<?php echo e($newCustomer['name']); ?>">
-                        </p>
-                        <p>
-                            <label for="new_company">Company</label>
-                            <input id="new_company" type="text" name="new_company" value="<?php echo e($newCustomer['company']); ?>">
-                        </p>
-                        <p>
-                            <label for="new_email">Email</label>
-                            <input id="new_email" type="email" name="new_email" value="<?php echo e($newCustomer['email']); ?>">
-                        </p>
-                        <p>
-                            <label for="new_phone">Phone</label>
-                            <input id="new_phone" type="tel" name="new_phone" inputmode="numeric" autocomplete="tel"
-                                   maxlength="14" placeholder="(555) 555-5555 or 1-800-234-1234" data-phone
-                                   value="<?php echo e(format_phone($newCustomer['phone'])); ?>">
-                        </p>
+                <div id="selected-customer-fields"<?php echo $hasParty ? '' : ' hidden'; ?>>
+                    <div class="invoice-party-name" id="view-customer-name"><?php echo e($party['name']); ?></div>
+                    <div id="view-customer-company"<?php echo trim((string) $party['company']) !== '' ? '' : ' hidden'; ?>><?php echo e($party['company']); ?></div>
+                    <div class="muted" id="view-customer-email"<?php echo trim((string) $party['email']) !== '' ? '' : ' hidden'; ?>><?php echo e($party['email']); ?></div>
+                    <div class="muted" id="view-customer-phone"<?php echo trim((string) $party['phone']) !== '' ? '' : ' hidden'; ?>><?php echo e(format_phone($party['phone'])); ?></div>
+                    <div class="inv-customer-actions no-print">
+                        <button type="button" class="inv-link" id="customer-change">Change</button>
+                        <button type="button" class="inv-link" id="customer-edit">Edit</button>
                     </div>
                 </div>
             </div>
@@ -377,6 +367,66 @@ $companyFooter = array_merge($companyBlocks['contact'], $companyBlocks['address'
         <div class="inv-actions-right">
             <button class="btn btn-ghost" type="submit" name="after_save" value="stay">Save Draft</button>
             <button class="btn inv-primary" type="submit" name="after_save" value="ask_send">Save Invoice</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay customer-modal-overlay no-print" id="customer-modal" hidden
+         data-open="<?php echo $openCustomerModal ? '1' : '0'; ?>"
+         data-open-form="<?php echo $openCustomerForm ? '1' : '0'; ?>">
+        <div class="modal customer-modal" role="dialog" aria-modal="true" aria-labelledby="customer-modal-title">
+            <h2 id="customer-modal-title">Select customer</h2>
+            <div id="customer-modal-search-view">
+                <p>
+                    <label for="customer-search">Search</label>
+                    <input type="search" id="customer-search" class="inv-search" placeholder="Name, company, or email" autocomplete="off">
+                </p>
+                <div class="inv-picker-list" id="customer-list">
+                    <?php foreach ($customers as $customer): ?>
+                        <button type="button" class="inv-picker-item"
+                                data-id="<?php echo (int) $customer['id']; ?>"
+                                data-name="<?php echo e($customer['name']); ?>"
+                                data-company="<?php echo e($customer['company']); ?>"
+                                data-email="<?php echo e($customer['email']); ?>"
+                                data-phone="<?php echo e($customer['phone']); ?>">
+                            <strong><?php echo e($customer['name']); ?></strong>
+                            <small><?php echo e(trim($customer['company'] . ($customer['email'] ? ' · ' . $customer['email'] : ''))); ?></small>
+                        </button>
+                    <?php endforeach; ?>
+                    <p class="inv-picker-empty" id="customer-empty-list"<?php echo $customers ? ' hidden' : ''; ?>>No customers yet.</p>
+                </div>
+                <button type="button" class="inv-link" id="customer-add-from-search" hidden></button>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" id="customer-modal-cancel">Cancel</button>
+                    <button type="button" class="btn" id="choose-new-customer">New customer</button>
+                </div>
+            </div>
+            <div id="customer-modal-form-view" hidden>
+                <div class="inv-new-grid">
+                    <p>
+                        <label for="new_name">Name <span class="req">*</span></label>
+                        <input id="new_name" type="text" name="new_name" value="<?php echo e($newCustomer['name']); ?>">
+                    </p>
+                    <p>
+                        <label for="new_company">Company</label>
+                        <input id="new_company" type="text" name="new_company" value="<?php echo e($newCustomer['company']); ?>">
+                    </p>
+                    <p>
+                        <label for="new_email">Email</label>
+                        <input id="new_email" type="email" name="new_email" value="<?php echo e($newCustomer['email']); ?>">
+                    </p>
+                    <p>
+                        <label for="new_phone">Phone</label>
+                        <input id="new_phone" type="tel" name="new_phone" inputmode="numeric" autocomplete="tel"
+                               maxlength="14" placeholder="(555) 555-5555 or 1-800-234-1234" data-phone
+                               value="<?php echo e(format_phone($newCustomer['phone'])); ?>">
+                    </p>
+                </div>
+                <p class="alert alert-err" id="customer-form-error" hidden></p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-ghost" id="customer-form-back">Back</button>
+                    <button type="button" class="btn" id="customer-form-apply">Use customer</button>
+                </div>
+            </div>
         </div>
     </div>
 </form>
